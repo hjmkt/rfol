@@ -33,3 +33,25 @@ fn parser_works(){
         panic!("Parse error.");
     }
 }
+
+#[test]
+fn var_group_works(){
+    use std::collections::HashSet;
+    use data::Term::*;
+    use data::Formula;
+
+    let formula = Formula::Forall(Var("x0".into()), Box::new(Formula::Exists(Var("x1".into()), Box::new(Formula::And(Box::new(Formula::Equal(Func("a".into(), vec![Var("x".into()), Var("y".into())]), Func("b".into(), vec![Var("x".into()), Var("y".into())]))), Box::new(Formula::Or(Box::new(Formula::Not(Box::new(Formula::Pred("p".into(), vec![Var("y".into())])))), Box::new(Formula::Pred("q".into(), vec![])))))))));
+
+    let free_vars = formula.get_free_vars();
+    let bound_vars = formula.get_bound_vars();
+
+    let mut free_gt = HashSet::new();
+    free_gt.insert(Var("x".into()));
+    free_gt.insert(Var("y".into()));
+    let mut bound_gt = HashSet::new();
+    bound_gt.insert(Var("x0".into()));
+    bound_gt.insert(Var("x1".into()));
+
+    assert_eq!(free_gt, free_vars);
+    assert_eq!(bound_gt, bound_vars);
+}
