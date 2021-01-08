@@ -7,53 +7,40 @@ pub struct Tokenizer<'a>{
 }
 
 impl<'a> Tokenizer<'a>{
-    pub fn new() -> Tokenizer<'a>{
-        Tokenizer{iter: "".chars().peekable(), tokens: Vec::new()}
-    }
+    pub fn new() -> Tokenizer<'a>{ Tokenizer{iter: "".chars().peekable(), tokens: Vec::new()} }
 
     fn _tokenize(&mut self) -> (){
-        match self.iter.next(){
-            None => (),
-            Some(s) => {
-                let token = match s{
-                    '(' => Token::LParen,
-                    ')' => Token::RParen,
-                    '~' => Token::Not,
-                    '^' => Token::And,
-                    'v' => Token::Or,
-                    '=' => Token::Equal,
-                    'V' => Token::Forall,
-                    'E' => Token::Exists,
-                    ' ' => {
-                        self._tokenize();
-                        return;
-                    },
-                    _ => {
-                        let mut symbol = String::new();
-                        symbol.push(s);
-                        loop{
-                            match self.iter.peek(){
-                                None => break,
-                                Some(s) => match s {
-                                    '(' | ')' | '=' | 'V' | 'E' | ' ' => break,
-                                    _ => symbol.push(self.iter.next().unwrap())
-                                }
-                            }
-                        }
-                        Token::Symbol(symbol)
+        if let Some(s) = self.iter.next(){
+            let token = match s{
+                '(' => Token::LParen,
+                ')' => Token::RParen,
+                '~' => Token::Not,
+                '^' => Token::And,
+                'v' => Token::Or,
+                '=' => Token::Equal,
+                'V' => Token::Forall,
+                'E' => Token::Exists,
+                ' ' =>  return self._tokenize(),
+                _ => {
+                    let mut symbol = String::new();
+                    symbol.push(s);
+                    loop{
+                        if let Some('(' | ')' | '=' | 'V' | 'E' | ' ') = self.iter.peek(){ break }
+                        else { symbol.push(self.iter.next().unwrap()) }
                     }
-                };
-                self.tokens.push(token);
-                self._tokenize();
-            }
-        }
+                    Token::Symbol(symbol)
+                }
+            };
+            self.tokens.push(token);
+            self._tokenize();
+        } else { () }
     }
 
     pub fn tokenize(&mut self, s: &'a str) -> Vec<Token>{
         self.iter = s.chars().peekable();
         self.tokens.clear();
         self._tokenize();
-        return self.tokens.to_vec();
+        self.tokens.to_vec()
     }
 }
 

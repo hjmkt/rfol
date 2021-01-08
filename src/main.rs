@@ -1,3 +1,5 @@
+#![feature(or_patterns)]
+
 mod data;
 mod tokenizer;
 mod parser;

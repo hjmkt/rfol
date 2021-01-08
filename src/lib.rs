@@ -1,3 +1,5 @@
+#![feature(or_patterns)]
+
 pub mod data;
 pub mod tokenizer;
 pub mod parser;
@@ -9,7 +11,7 @@ fn tokenizer_works(){
 
     let mut tokenizer = Tokenizer::new();
     let tokens = tokenizer.tokenize("(Vx0 (Ex1 (^ (= (a x y) (b x y)) (v (~ (p y)) (q y)))))");
-    let gt = vec![LParen, Forall, Symbol("x0".to_string()), LParen, Exists, Symbol("x1".to_string()), LParen, And, LParen, Equal, LParen, Symbol("a".to_string()), Symbol("x".to_string()), Symbol("y".to_string()), RParen, LParen, Symbol("b".to_string()), Symbol("x".to_string()), Symbol("y".to_string()), RParen, RParen, LParen, Or, LParen, Not, LParen, Symbol("p".to_string()), Symbol("y".to_string()), RParen, RParen, LParen, Symbol("q".to_string()), Symbol("y".to_string()), RParen, RParen, RParen, RParen, RParen];
+    let gt = vec![LParen, Forall, Symbol("x0".into()), LParen, Exists, Symbol("x1".into()), LParen, And, LParen, Equal, LParen, Symbol("a".into()), Symbol("x".into()), Symbol("y".into()), RParen, LParen, Symbol("b".into()), Symbol("x".into()), Symbol("y".into()), RParen, RParen, LParen, Or, LParen, Not, LParen, Symbol("p".into()), Symbol("y".into()), RParen, RParen, LParen, Symbol("q".into()), Symbol("y".into()), RParen, RParen, RParen, RParen, RParen];
 
     assert_eq!(gt, tokens);
 }
@@ -22,8 +24,8 @@ fn parser_works(){
     use parser::Parser;
 
     let mut parser = Parser::new();
-    let tokens = vec![LParen, Forall, Symbol("x0".to_string()), LParen, Exists, Symbol("x1".to_string()), LParen, And, LParen, Equal, LParen, Symbol("a".to_string()), Symbol("x".to_string()), Symbol("y".to_string()), RParen, LParen, Symbol("b".to_string()), Symbol("x".to_string()), Symbol("y".to_string()), RParen, RParen, LParen, Or, LParen, Not, LParen, Symbol("p".to_string()), Symbol("y".to_string()), RParen, RParen, LParen, Symbol("q".to_string()), Symbol("y".to_string()), RParen, RParen, RParen, RParen, RParen];
-    let gt = Formula::Forall(Var("x0".to_string()), Box::new(Formula::Exists(Var("x1".to_string()), Box::new(Formula::And(Box::new(Formula::Equal(Func("a".to_string(), vec![Var("x".to_string()), Var("y".to_string())]), Func("b".to_string(), vec![Var("x".to_string()), Var("y".to_string())]))), Box::new(Formula::Or(Box::new(Formula::Not(Box::new(Formula::Pred("p".to_string(), vec![Var("y".to_string())])))), Box::new(Formula::Pred("q".to_string(), vec![Var("y".to_string())])))))))));
+    let tokens = vec![LParen, Forall, Symbol("x0".into()), LParen, Exists, Symbol("x1".into()), LParen, And, LParen, Equal, LParen, Symbol("a".into()), Symbol("x".into()), Symbol("y".into()), RParen, LParen, Symbol("b".into()), Symbol("x".into()), Symbol("y".into()), RParen, RParen, LParen, Or, LParen, Not, LParen, Symbol("p".into()), Symbol("y".into()), RParen, RParen, LParen, Symbol("q".into()), Symbol("y".into()), RParen, RParen, RParen, RParen, RParen];
+    let gt = Formula::Forall(Var("x0".into()), Box::new(Formula::Exists(Var("x1".into()), Box::new(Formula::And(Box::new(Formula::Equal(Func("a".into(), vec![Var("x".into()), Var("y".into())]), Func("b".into(), vec![Var("x".into()), Var("y".into())]))), Box::new(Formula::Or(Box::new(Formula::Not(Box::new(Formula::Pred("p".into(), vec![Var("y".into())])))), Box::new(Formula::Pred("q".into(), vec![Var("y".into())])))))))));
 
     if let Ok(formula) = parser.parse(&tokens){
         assert_eq!(gt, formula);
