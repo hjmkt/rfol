@@ -363,4 +363,27 @@ fn finite_model_evaluate_works() {
 
     let truth_value = model.evaluate_formula(&formula);
     assert_eq!(false, truth_value);
+
+    macro_rules! hashmap {
+        ($( $key: expr => $val: expr ),*) => {{
+             let mut map = ::std::collections::HashMap::new();
+             $( map.insert($key, $val); )*
+             map
+        }}
+    }
+
+    {
+        let mut model = FiniteModel::new(1);
+        model.pred_assignment.insert(
+            NonLogicalSymbol {
+                name: "a".into(),
+                arity: 0,
+            },
+            hashmap![vec![] => true],
+        );
+        let fml = Box::new(Formula::Pred("a".into(), vec![]));
+        assert_eq!(true, model.evaluate_formula(&fml));
+        let fml = Formula::Not(fml);
+        assert_eq!(false, model.evaluate_formula(&fml));
+    }
 }

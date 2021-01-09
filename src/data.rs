@@ -237,7 +237,7 @@ impl Model for FiniteModel {
                 assignment[&values]
             }
             Formula::Equal(lhs, rhs) => self.evaluate_term(lhs) == self.evaluate_term(rhs),
-            Formula::Not(bfml) => self.evaluate_formula(bfml),
+            Formula::Not(bfml) => !self.evaluate_formula(bfml),
             Formula::And(lhs, rhs) => self.evaluate_formula(lhs) && self.evaluate_formula(rhs),
             Formula::Or(lhs, rhs) => self.evaluate_formula(lhs) || self.evaluate_formula(rhs),
             Formula::Forall(Term::Var(name), bfml) => (0..self.domain_size)
