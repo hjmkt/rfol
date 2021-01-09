@@ -1,8 +1,6 @@
-#![feature(or_patterns)]
-
 mod data;
-mod tokenizer;
 mod parser;
+mod tokenizer;
 
 fn main() {
     let mut tokenizer = tokenizer::Tokenizer::new();
@@ -10,14 +8,13 @@ fn main() {
     println!("{:?}", tokens);
 
     let mut parser = parser::Parser::new();
-    if let Ok(formula) = parser.parse(&tokens){
+    if let Ok(formula) = parser.parse(&tokens) {
         println!("{:?}", formula);
         let free_vars = formula.get_free_vars();
         let bound_vars = formula.get_bound_vars();
         println!("{:?}", free_vars);
         println!("{:?}", bound_vars);
-    }
-    else{
+    } else {
         println!("{:?}", parser);
     }
 }
