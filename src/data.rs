@@ -28,6 +28,12 @@ pub enum Formula {
     Exists(Term, Box<Formula>),
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct NonLogicalSymbol {
+    pub name: String,
+    pub arity: u32,
+}
+
 use std::collections::HashSet;
 
 impl Term {
@@ -46,6 +52,25 @@ impl Term {
         let mut vars: HashSet<Term> = HashSet::new();
         self._get_vars(&mut vars);
         vars
+    }
+
+    fn _get_funcs(&self, funcs: &mut HashSet<NonLogicalSymbol>) {
+        match self {
+            Term::Func(name, terms) => {
+                funcs.insert(NonLogicalSymbol {
+                    name: name.into(),
+                    arity: terms.len() as u32,
+                });
+                terms.iter().for_each(|term| term._get_funcs(funcs));
+            }
+            _ => (),
+        }
+    }
+
+    pub fn get_funcs(&self) -> HashSet<NonLogicalSymbol> {
+        let mut funcs: HashSet<NonLogicalSymbol> = HashSet::new();
+        self._get_funcs(&mut funcs);
+        funcs
     }
 }
 
@@ -94,5 +119,61 @@ impl Formula {
         let mut bound_vars = HashSet::new();
         self._group_vars(&mut free_vars, &mut bound_vars);
         bound_vars
+    }
+
+    fn _get_funcs(&self, funcs: &mut HashSet<NonLogicalSymbol>) {
+        match self {
+            Formula::Forall(_, formula) | Formula::Exists(_, formula) => {
+                formula._get_funcs(funcs);
+            }
+            Formula::Pred(_, terms) => {
+                funcs.extend(terms.iter().flat_map(|term| term.get_funcs()));
+            }
+            Formula::Equal(lhs, rhs) => {
+                let terms = [lhs, rhs];
+                funcs.extend(terms.iter().flat_map(|term| term.get_funcs()));
+            }
+            Formula::Not(formula) => {
+                (*formula)._get_funcs(funcs);
+            }
+            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) => {
+                (*lhs)._get_funcs(funcs);
+                (*rhs)._get_funcs(funcs);
+            }
+        }
+    }
+
+    pub fn get_funcs(&self) -> HashSet<NonLogicalSymbol> {
+        let mut funcs = HashSet::new();
+        self._get_funcs(&mut funcs);
+        funcs
+    }
+
+    fn _get_preds(&self, preds: &mut HashSet<NonLogicalSymbol>) {
+        match self {
+            Formula::Forall(_, formula) | Formula::Exists(_, formula) => {
+                formula._get_preds(preds);
+            }
+            Formula::Pred(name, terms) => {
+                preds.insert(NonLogicalSymbol {
+                    name: name.into(),
+                    arity: terms.len() as u32,
+                });
+            }
+            Formula::Not(formula) => {
+                (*formula)._get_preds(preds);
+            }
+            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) => {
+                (*lhs)._get_preds(preds);
+                (*rhs)._get_preds(preds);
+            }
+            _ => (),
+        }
+    }
+
+    pub fn get_preds(&self) -> HashSet<NonLogicalSymbol> {
+        let mut preds = HashSet::new();
+        self._get_preds(&mut preds);
+        preds
     }
 }

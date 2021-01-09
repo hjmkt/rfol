@@ -161,3 +161,87 @@ fn var_group_works() {
     assert_eq!(free_gt, free_vars);
     assert_eq!(bound_gt, bound_vars);
 }
+
+#[test]
+fn get_funcs_works() {
+    use data::Formula;
+    use data::NonLogicalSymbol;
+    use data::Term::*;
+    use std::collections::HashSet;
+
+    let formula = Formula::Forall(
+        Var("x0".into()),
+        Box::new(Formula::Exists(
+            Var("x1".into()),
+            Box::new(Formula::And(
+                Box::new(Formula::Equal(
+                    Func("a".into(), vec![Var("x".into()), Var("y".into())]),
+                    Func("b".into(), vec![Var("x".into()), Var("y".into())]),
+                )),
+                Box::new(Formula::Or(
+                    Box::new(Formula::Not(Box::new(Formula::Pred(
+                        "p".into(),
+                        vec![Var("y".into())],
+                    )))),
+                    Box::new(Formula::Pred("q".into(), vec![])),
+                )),
+            )),
+        )),
+    );
+
+    let funcs = formula.get_funcs();
+
+    let mut gt = HashSet::new();
+    gt.insert(NonLogicalSymbol {
+        name: "a".into(),
+        arity: 2,
+    });
+    gt.insert(NonLogicalSymbol {
+        name: "b".into(),
+        arity: 2,
+    });
+
+    assert_eq!(gt, funcs);
+}
+
+#[test]
+fn get_preds_works() {
+    use data::Formula;
+    use data::NonLogicalSymbol;
+    use data::Term::*;
+    use std::collections::HashSet;
+
+    let formula = Formula::Forall(
+        Var("x0".into()),
+        Box::new(Formula::Exists(
+            Var("x1".into()),
+            Box::new(Formula::And(
+                Box::new(Formula::Equal(
+                    Func("a".into(), vec![Var("x".into()), Var("y".into())]),
+                    Func("b".into(), vec![Var("x".into()), Var("y".into())]),
+                )),
+                Box::new(Formula::Or(
+                    Box::new(Formula::Not(Box::new(Formula::Pred(
+                        "p".into(),
+                        vec![Var("y".into())],
+                    )))),
+                    Box::new(Formula::Pred("q".into(), vec![])),
+                )),
+            )),
+        )),
+    );
+
+    let preds = formula.get_preds();
+
+    let mut gt = HashSet::new();
+    gt.insert(NonLogicalSymbol {
+        name: "p".into(),
+        arity: 1,
+    });
+    gt.insert(NonLogicalSymbol {
+        name: "q".into(),
+        arity: 0,
+    });
+
+    assert_eq!(gt, preds);
+}

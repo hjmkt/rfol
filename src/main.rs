@@ -14,6 +14,10 @@ fn main() {
         let bound_vars = formula.get_bound_vars();
         println!("{:?}", free_vars);
         println!("{:?}", bound_vars);
+        let funcs = formula.get_funcs();
+        println!("{:?}", funcs);
+        let preds = formula.get_preds();
+        println!("{:?}", preds);
     } else {
         println!("{:?}", parser);
     }
