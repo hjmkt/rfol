@@ -30,20 +30,14 @@ impl<'a> Tokenizer<'a> {
                 'E' => Token::Exists,
                 ' ' => return self._tokenize(),
                 _ => {
-                    let symbol = self.iter.take_while_ref(|s| {
-                        if let '(' | ')' | '=' | 'V' | 'E' | ' ' = s {
-                            false
-                        } else {
-                            true
-                        }
-                    });
+                    let symbol = self
+                        .iter
+                        .take_while_ref(|s| !matches!(s, '(' | ')' | '=' | 'V' | 'E' | ' '));
                     Token::Symbol(s.to_string() + &symbol.collect::<String>())
                 }
             };
             self.tokens.push(token);
             self._tokenize();
-        } else {
-            ()
         }
     }
 

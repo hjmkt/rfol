@@ -18,16 +18,14 @@ impl<'a> Parser<'a> {
                 Token::LParen => {
                     if let Some(Token::Symbol(s)) = self.iter.next() {
                         let mut terms = vec![];
-                        loop {
+                        while {
                             if let Ok(term) = self._parse_term() {
                                 terms.push(term)
                             } else {
                                 return Err("Parse error.");
                             }
-                            if let Some(Token::RParen) = self.iter.peek() {
-                                break;
-                            }
-                        }
+                            !matches!(self.iter.peek(), Some(Token::RParen))
+                        } {}
                         Ok(Term::Func(s.into(), terms))
                     } else {
                         Err("Parse error.")
@@ -53,16 +51,14 @@ impl<'a> Parser<'a> {
                     Some(token) => match token {
                         Token::Symbol(s) => {
                             let mut terms = vec![];
-                            loop {
+                            while {
                                 if let Ok(term) = self._parse_term() {
                                     terms.push(term)
                                 } else {
                                     return Err("Parse error.");
                                 }
-                                if let Some(Token::RParen) = self.iter.peek() {
-                                    break;
-                                }
-                            }
+                                !matches!(self.iter.peek(), Some(Token::RParen))
+                            } {}
                             Ok(Formula::Pred(s.into(), terms))
                         }
                         Token::Not => {
