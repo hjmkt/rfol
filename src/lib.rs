@@ -245,3 +245,122 @@ fn get_preds_works() {
 
     assert_eq!(gt, preds);
 }
+
+#[test]
+fn finite_model_evaluate_works() {
+    use data::FiniteModel;
+    use data::Formula;
+    use data::Model;
+    use data::NonLogicalSymbol;
+    use data::Term::*;
+    use std::collections::HashMap;
+
+    let formula = Formula::Forall(
+        Var("x0".into()),
+        Box::new(Formula::Exists(
+            Var("x1".into()),
+            Box::new(Formula::And(
+                Box::new(Formula::Equal(
+                    Func("a".into(), vec![Var("x".into()), Var("y".into())]),
+                    Func("b".into(), vec![Var("x".into()), Var("y".into())]),
+                )),
+                Box::new(Formula::Or(
+                    Box::new(Formula::Not(Box::new(Formula::Pred(
+                        "p".into(),
+                        vec![Var("y".into())],
+                    )))),
+                    Box::new(Formula::Pred("q".into(), vec![])),
+                )),
+            )),
+        )),
+    );
+
+    let mut model = FiniteModel::new(2);
+
+    model.var_assignment.insert(Var("x".into()), 0);
+    model.var_assignment.insert(Var("y".into()), 1);
+
+    model.func_assignment.insert(
+        NonLogicalSymbol {
+            name: "a".into(),
+            arity: 2,
+        },
+        HashMap::new(),
+    );
+    model.func_assignment.insert(
+        NonLogicalSymbol {
+            name: "b".into(),
+            arity: 2,
+        },
+        HashMap::new(),
+    );
+
+    {
+        let assignment_a = model
+            .func_assignment
+            .get_mut(&NonLogicalSymbol {
+                name: "a".into(),
+                arity: 2,
+            })
+            .unwrap();
+        assignment_a.insert(vec![0, 0], 0);
+        assignment_a.insert(vec![0, 1], 1);
+        assignment_a.insert(vec![1, 0], 1);
+        assignment_a.insert(vec![1, 1], 0);
+    }
+
+    {
+        let assignment_b = model
+            .func_assignment
+            .get_mut(&NonLogicalSymbol {
+                name: "b".into(),
+                arity: 2,
+            })
+            .unwrap();
+        assignment_b.insert(vec![0, 0], 1);
+        assignment_b.insert(vec![0, 1], 0);
+        assignment_b.insert(vec![1, 0], 0);
+        assignment_b.insert(vec![1, 1], 1);
+    }
+
+    model.pred_assignment.insert(
+        NonLogicalSymbol {
+            name: "p".into(),
+            arity: 1,
+        },
+        HashMap::new(),
+    );
+    model.pred_assignment.insert(
+        NonLogicalSymbol {
+            name: "q".into(),
+            arity: 0,
+        },
+        HashMap::new(),
+    );
+
+    {
+        let assignment_p = model
+            .pred_assignment
+            .get_mut(&NonLogicalSymbol {
+                name: "p".into(),
+                arity: 1,
+            })
+            .unwrap();
+        assignment_p.insert(vec![0], true);
+        assignment_p.insert(vec![1], false);
+    }
+
+    {
+        let assignment_q = model
+            .pred_assignment
+            .get_mut(&NonLogicalSymbol {
+                name: "q".into(),
+                arity: 0,
+            })
+            .unwrap();
+        assignment_q.insert(vec![], true);
+    }
+
+    let truth_value = model.evaluate_formula(&formula);
+    assert_eq!(false, truth_value);
+}

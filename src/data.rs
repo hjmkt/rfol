@@ -187,9 +187,9 @@ pub struct FiniteModel {
     pub pred_assignment: HashMap<NonLogicalSymbol, HashMap<Vec<u32>, bool>>,
 }
 
-impl FiniteModel{
-    pub fn new(domain_size: u32) -> FiniteModel{
-        FiniteModel{
+impl FiniteModel {
+    pub fn new(domain_size: u32) -> FiniteModel {
+        FiniteModel {
             domain_size: domain_size,
             var_assignment: HashMap::new(),
             func_assignment: HashMap::new(),
@@ -198,7 +198,7 @@ impl FiniteModel{
     }
 }
 
-trait Model {
+pub trait Model {
     fn evaluate_term(&self, term: &Term) -> u32;
     fn evaluate_formula(&mut self, fml: &Formula) -> bool;
 }
