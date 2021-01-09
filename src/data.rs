@@ -31,19 +31,21 @@ pub enum Formula {
 use std::collections::HashSet;
 
 impl Term {
-    fn _group_vars(&self, free_vars: &mut HashSet<Term>, bound_vars: &mut HashSet<Term>) {
+    fn _get_vars(&self, vars: &mut HashSet<Term>) {
         match self {
             Term::Var(s) => {
-                if !bound_vars.contains(&Term::Var(s.into())) {
-                    free_vars.insert(Term::Var(s.into()));
-                }
+                vars.insert(Term::Var(s.into()));
             }
             Term::Func(_, terms) => {
-                for term in terms.iter() {
-                    term._group_vars(free_vars, bound_vars);
-                }
+                terms.iter().for_each(|term| term._get_vars(vars));
             }
         }
+    }
+
+    pub fn get_vars(&self) -> HashSet<Term> {
+        let mut vars: HashSet<Term> = HashSet::new();
+        self._get_vars(&mut vars);
+        vars
     }
 }
 
@@ -55,13 +57,19 @@ impl Formula {
                 formula._group_vars(free_vars, bound_vars);
             }
             Formula::Pred(_, terms) => {
-                for term in terms {
-                    term._group_vars(free_vars, bound_vars);
-                }
+                let vars = terms
+                    .iter()
+                    .flat_map(|term| term.get_vars())
+                    .filter(|var| !bound_vars.contains(var));
+                free_vars.extend(vars);
             }
             Formula::Equal(lhs, rhs) => {
-                lhs._group_vars(free_vars, bound_vars);
-                rhs._group_vars(free_vars, bound_vars);
+                let terms = [lhs, rhs];
+                let vars = terms
+                    .iter()
+                    .flat_map(|term| term.get_vars())
+                    .filter(|var| !bound_vars.contains(var));
+                free_vars.extend(vars);
             }
             Formula::Not(formula) => {
                 (*formula)._group_vars(free_vars, bound_vars);

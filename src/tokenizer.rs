@@ -1,15 +1,18 @@
+extern crate itertools;
+
 use crate::data::*;
+use itertools::Itertools;
 
 #[derive(Debug)]
 pub struct Tokenizer<'a> {
-    pub iter: std::iter::Peekable<std::str::Chars<'a>>,
+    pub iter: std::str::Chars<'a>,
     pub tokens: Vec<Token>,
 }
 
 impl<'a> Tokenizer<'a> {
     pub fn new() -> Tokenizer<'a> {
         Tokenizer {
-            iter: "".chars().peekable(),
+            iter: "".chars(),
             tokens: Vec::new(),
         }
     }
@@ -27,20 +30,14 @@ impl<'a> Tokenizer<'a> {
                 'E' => Token::Exists,
                 ' ' => return self._tokenize(),
                 _ => {
-                    let mut symbol = String::new();
-                    symbol.push(s);
-                    loop {
-                        if let Some(s) = self.iter.peek() {
-                            if let '(' | ')' | '=' | 'V' | 'E' | ' ' = s {
-                                break;
-                            } else {
-                                symbol.push(self.iter.next().unwrap())
-                            }
+                    let symbol = self.iter.take_while_ref(|s| {
+                        if let '(' | ')' | '=' | 'V' | 'E' | ' ' = s {
+                            false
                         } else {
-                            symbol.push(self.iter.next().unwrap())
+                            true
                         }
-                    }
-                    Token::Symbol(symbol)
+                    });
+                    Token::Symbol(s.to_string() + &symbol.collect::<String>())
                 }
             };
             self.tokens.push(token);
@@ -51,7 +48,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     pub fn tokenize(&mut self, s: &'a str) -> Vec<Token> {
-        self.iter = s.chars().peekable();
+        self.iter = s.chars();
         self.tokens.clear();
         self._tokenize();
         self.tokens.to_vec()
