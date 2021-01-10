@@ -24,6 +24,7 @@ pub enum Formula {
     Not(Box<Formula>),
     And(Box<Formula>, Box<Formula>),
     Or(Box<Formula>, Box<Formula>),
+    Implies(Box<Formula>, Box<Formula>),
     Forall(Term, Box<Formula>),
     Exists(Term, Box<Formula>),
 }
@@ -136,7 +137,7 @@ impl Formula {
             Formula::Not(formula) => {
                 (*formula)._get_funcs(funcs);
             }
-            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) => {
+            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
                 (*lhs)._get_funcs(funcs);
                 (*rhs)._get_funcs(funcs);
             }
@@ -256,6 +257,197 @@ impl Model for FiniteModel {
                 assert!(false);
                 false
             }
+        }
+    }
+}
+
+pub struct Sequent{
+    pub antecedent: Vec<Formula>,
+    pub succedent: Vec<Formula>,
+}
+
+pub enum LK{
+    Axiom(Sequent),
+    WeakeningLeft(Sequent, Sequent),
+    WeakeningRight(Sequent, Sequent),
+    ContractionLeft(Sequent, Sequent),
+    ContractionRight(Sequent, Sequent),
+    ExchangeLeft(Sequent, Sequent),
+    ExchangeRight(Sequent, Sequent),
+    AndLeft1(Sequent, Sequent),
+    AndLeft2(Sequent, Sequent),
+    AndRight([Sequent;2], Sequent),
+    OrLeft([Sequent;2], Sequent),
+    OrRight1(Sequent, Sequent),
+    OrRight2(Sequent, Sequent),
+    ImpliesLeft([Sequent;2], Sequent),
+    ImpliesRight(Sequent, Sequent),
+    NotLeft(Sequent, Sequent),
+    NotRight(Sequent, Sequent),
+    ForallLeft(Sequent, Sequent),
+    ForallRight(Sequent, Sequent),
+    ExistsLeft(Sequent, Sequent),
+    ExistsRight(Sequent, Sequent),
+    Cut([Sequent;2], Sequent),
+}
+
+impl LK{
+    pub fn is_valid_inference(&self) -> bool{
+        match self{
+            LK::Axiom(conclusion) => conclusion.antecedent == conclusion.succedent,
+            LK:: WeakeningLeft(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent[1..] &&
+                premise.succedent == conclusion.succedent
+            }
+            LK:: WeakeningRight(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent &&
+                premise.succedent == conclusion.succedent.split_last().unwrap().1
+            }
+            LK:: ContractionLeft(premise, conclusion) => {
+                premise.antecedent[0] == premise.antecedent[1] &&
+                premise.antecedent[1..] == conclusion.antecedent &&
+                premise.succedent == conclusion.succedent
+            }
+            LK:: ContractionRight(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent &&
+                premise.succedent[premise.succedent.len()-2] == premise.succedent[conclusion.succedent.len()-1] &&
+                premise.succedent.split_last().unwrap().1 == conclusion.succedent
+            }
+            LK:: ExchangeLeft(premise, conclusion) => {
+                if premise.succedent == conclusion.succedent{
+                    let mut valid = false;
+                    for i in 0..premise.antecedent.len()-1{
+                        if premise.antecedent[..i] == conclusion.antecedent[..i] &&
+                           premise.antecedent[i+2..] == conclusion.antecedent[i+2..] &&
+                           premise.antecedent[i] == conclusion.antecedent[i+1] &&
+                           premise.antecedent[i+1] == conclusion.antecedent[i]{
+                            valid = true;
+                            break;
+                        }
+                    }
+                    valid
+                } else{
+                    false
+                }
+            }
+            LK:: ExchangeRight(premise, conclusion) => {
+                if premise.antecedent == conclusion.antecedent{
+                    let mut valid = false;
+                    for i in 0..premise.succedent.len()-1{
+                        if premise.succedent[..i] == conclusion.succedent[..i] &&
+                           premise.succedent[i+2..] == conclusion.succedent[i+2..] &&
+                           premise.succedent[i] == conclusion.succedent[i+1] &&
+                           premise.succedent[i+1] == conclusion.succedent[i]{
+                            valid = true;
+                            break;
+                        }
+                    }
+                    valid
+                } else{
+                    false
+                }
+            }
+            LK:: AndLeft1(premise, conclusion) => {
+                premise.antecedent[1..] == conclusion.antecedent[1..] &&
+                premise.succedent == conclusion.succedent &&
+                if let Formula::And(fml, _) = &conclusion.antecedent[0]{
+                    **fml == premise.antecedent[0]
+                } else{
+                    false
+                }
+            }
+            LK:: AndLeft2(premise, conclusion) => {
+                premise.antecedent[1..] == conclusion.antecedent[1..] &&
+                premise.succedent == conclusion.succedent &&
+                if let Formula::And(_, fml) = &conclusion.antecedent[0]{
+                    **fml == premise.antecedent[0]
+                } else{
+                    false
+                }
+            }
+            LK:: AndRight([lpremise, rpremise], conclusion) => {
+                lpremise.antecedent == conclusion.antecedent &&
+                rpremise.antecedent == conclusion.antecedent &&
+                lpremise.succedent.split_last().unwrap().1 == conclusion.succedent.split_last().unwrap().1 &&
+                rpremise.succedent.split_last().unwrap().1 == conclusion.succedent.split_last().unwrap().1 &&
+                if let Formula::And(lhs, rhs) = conclusion.succedent.last().unwrap(){
+                    lpremise.succedent.last().unwrap() == &**lhs && rpremise.succedent.last().unwrap() == &**rhs
+                } else{
+                    false
+                }
+            }
+            LK:: OrLeft([lpremise, rpremise], conclusion) => {
+                lpremise.succedent == conclusion.succedent &&
+                rpremise.succedent == conclusion.succedent &&
+                lpremise.antecedent[1..] == conclusion.antecedent[1..] &&
+                rpremise.antecedent[1..] == conclusion.antecedent[1..] &&
+                if let Formula::Or(lhs, rhs) = &conclusion.succedent[0]{
+                    lpremise.succedent[0] == **lhs && rpremise.succedent[0] == **rhs
+                } else{
+                    false
+                }
+            }
+            LK:: OrRight1(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent &&
+                premise.succedent.split_last().unwrap().1 == conclusion.succedent.split_last().unwrap().1 &&
+                if let Formula::Or(fml, _) = conclusion.antecedent.last().unwrap(){
+                    &**fml == premise.antecedent.last().unwrap()
+                } else{
+                    false
+                }
+            }
+            LK:: OrRight2(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent &&
+                premise.succedent.split_last().unwrap().1 == conclusion.succedent.split_last().unwrap().1 &&
+                if let Formula::Or(_, fml) = conclusion.antecedent.last().unwrap(){
+                    &**fml == premise.antecedent.last().unwrap()
+                } else{
+                    false
+                }
+            }
+            LK:: ImpliesLeft([lpremise, rpremise], conclusion) => {
+                let gamma = &lpremise.antecedent;
+                let delta = lpremise.succedent.split_last().unwrap().1;
+                let fml1 = lpremise.succedent.last().unwrap();
+                let fml2 = &rpremise.antecedent[0];
+                let pi = &rpremise.antecedent[1..];
+                let sigma = &rpremise.succedent;
+                fml1 == fml2 &&
+                conclusion.antecedent == [gamma, pi].concat() &&
+                conclusion.succedent == [delta, &sigma].concat()
+            }
+            LK:: ImpliesRight(premise, conclusion) => {
+                premise.antecedent[1..] == conclusion.antecedent &&
+                premise.succedent.split_last().unwrap().1 == conclusion.succedent.split_last().unwrap().1 &&
+                if let Formula::Implies(lhs, rhs) = conclusion.succedent.last().unwrap(){
+                    **lhs == premise.antecedent[0] && &**rhs == premise.succedent.last().unwrap()
+                } else{
+                    false
+                }
+            }
+            LK::NotLeft(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent[1..] &&
+                premise.succedent.split_last().unwrap().1 == conclusion.succedent &&
+                if let Formula::Not(fml) = &conclusion.antecedent[0]{
+                    &**fml == premise.succedent.last().unwrap()
+                } else{
+                    false
+                }
+            }
+            LK::NotRight(premise, conclusion) => {
+                premise.antecedent[1..] == conclusion.antecedent &&
+                premise.succedent == conclusion.succedent.split_last().unwrap().1 &&
+                if let Formula::Not(fml) = conclusion.succedent.last().unwrap(){
+                    **fml == premise.antecedent[0]
+                } else{
+                    false
+                }
+            }
+            // TODO
+            //LK::ForallLeft(premise, conclusion) => {
+
+            //}
+            _ => false
         }
     }
 }
