@@ -8,7 +8,7 @@ fn tokenizer_works() {
     use tokenizer::Tokenizer;
 
     let mut tokenizer = Tokenizer::new();
-    let tokens = tokenizer.tokenize("(Vx0 (Ex1 (^ (= (a x y) (b x y)) (v (~ (p y)) q))))");
+    let tokens = tokenizer.tokenize("(Vx0 (Ex1 (^ (= (a x y) (b x y)) (v (~ (p y)) (> q r)))))");
     let gt = vec![
         LParen,
         Forall,
@@ -40,7 +40,11 @@ fn tokenizer_works() {
         Symbol("y".into()),
         RParen,
         RParen,
+        LParen,
+        Implies,
         Symbol("q".into()),
+        Symbol("r".into()),
+        RParen,
         RParen,
         RParen,
         RParen,
@@ -89,7 +93,11 @@ fn parser_works() {
         Symbol("y".into()),
         RParen,
         RParen,
+        LParen,
+        Implies,
         Symbol("q".into()),
+        Symbol("r".into()),
+        RParen,
         RParen,
         RParen,
         RParen,
@@ -109,7 +117,10 @@ fn parser_works() {
                         "p".into(),
                         vec![Var("y".into())],
                     )))),
-                    Box::new(Formula::Pred("q".into(), vec![])),
+                    Box::new(Formula::Implies(
+                        Box::new(Formula::Pred("q".into(), vec![])),
+                        Box::new(Formula::Pred("r".into(), vec![])),
+                    )),
                 )),
             )),
         )),
@@ -142,7 +153,10 @@ fn var_group_works() {
                         "p".into(),
                         vec![Var("y".into())],
                     )))),
-                    Box::new(Formula::Pred("q".into(), vec![])),
+                    Box::new(Formula::Implies(
+                        Box::new(Formula::Pred("q".into(), vec![])),
+                        Box::new(Formula::Pred("r".into(), vec![])),
+                    )),
                 )),
             )),
         )),
@@ -183,7 +197,10 @@ fn get_funcs_works() {
                         "p".into(),
                         vec![Var("y".into())],
                     )))),
-                    Box::new(Formula::Pred("q".into(), vec![])),
+                    Box::new(Formula::Implies(
+                        Box::new(Formula::Pred("q".into(), vec![])),
+                        Box::new(Formula::Pred("r".into(), vec![])),
+                    )),
                 )),
             )),
         )),
@@ -225,7 +242,10 @@ fn get_preds_works() {
                         "p".into(),
                         vec![Var("y".into())],
                     )))),
-                    Box::new(Formula::Pred("q".into(), vec![])),
+                    Box::new(Formula::Implies(
+                        Box::new(Formula::Pred("q".into(), vec![])),
+                        Box::new(Formula::Pred("r".into(), vec![])),
+                    )),
                 )),
             )),
         )),
@@ -240,6 +260,10 @@ fn get_preds_works() {
     });
     gt.insert(NonLogicalSymbol {
         name: "q".into(),
+        arity: 0,
+    });
+    gt.insert(NonLogicalSymbol {
+        name: "r".into(),
         arity: 0,
     });
 
@@ -269,7 +293,10 @@ fn finite_model_evaluate_works() {
                         "p".into(),
                         vec![Var("y".into())],
                     )))),
-                    Box::new(Formula::Pred("q".into(), vec![])),
+                    Box::new(Formula::Implies(
+                        Box::new(Formula::Pred("q".into(), vec![])),
+                        Box::new(Formula::Pred("r".into(), vec![])),
+                    )),
                 )),
             )),
         )),
@@ -337,6 +364,13 @@ fn finite_model_evaluate_works() {
         },
         HashMap::new(),
     );
+    model.pred_assignment.insert(
+        NonLogicalSymbol {
+            name: "r".into(),
+            arity: 0,
+        },
+        HashMap::new(),
+    );
 
     {
         let assignment_p = model
@@ -359,6 +393,17 @@ fn finite_model_evaluate_works() {
             })
             .unwrap();
         assignment_q.insert(vec![], true);
+    }
+
+    {
+        let assignment_r = model
+            .pred_assignment
+            .get_mut(&NonLogicalSymbol {
+                name: "r".into(),
+                arity: 0,
+            })
+            .unwrap();
+        assignment_r.insert(vec![], true);
     }
 
     let truth_value = model.evaluate_formula(&formula);

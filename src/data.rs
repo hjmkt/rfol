@@ -141,7 +141,7 @@ impl Formula {
             Formula::Not(formula) => {
                 (*formula)._group_vars(free_vars, bound_vars);
             }
-            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) => {
+            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
                 (*lhs)._group_vars(free_vars, bound_vars);
                 (*rhs)._group_vars(free_vars, bound_vars);
             }
@@ -205,7 +205,7 @@ impl Formula {
             Formula::Not(formula) => {
                 (*formula)._get_preds(preds);
             }
-            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) => {
+            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
                 (*lhs)._get_preds(preds);
                 (*rhs)._get_preds(preds);
             }
