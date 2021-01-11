@@ -128,8 +128,8 @@ fn parser_works() {
         )),
     );
 
-    if let Ok(formula) = parser.parse(&tokens) {
-        assert_eq!(gt, formula);
+    if let Ok(fml) = parser.parse(&tokens) {
+        assert_eq!(gt, fml);
     } else {
         panic!("Parse error.");
     }
@@ -141,7 +141,7 @@ fn var_group_works() {
     use language::Term::*;
     use std::collections::HashSet;
 
-    let formula = Formula::Forall(
+    let fml = Formula::Forall(
         Var("x0".into()),
         Box::new(Formula::Exists(
             Var("x1".into()),
@@ -164,8 +164,8 @@ fn var_group_works() {
         )),
     );
 
-    let free_vars = formula.get_free_vars();
-    let bound_vars = formula.get_bound_vars();
+    let free_vars = fml.get_free_vars();
+    let bound_vars = fml.get_bound_vars();
 
     let mut free_gt = HashSet::new();
     free_gt.insert(Var("x".into()));
@@ -185,7 +185,7 @@ fn get_funcs_works() {
     use language::Term::*;
     use std::collections::HashSet;
 
-    let formula = Formula::Forall(
+    let fml = Formula::Forall(
         Var("x0".into()),
         Box::new(Formula::Exists(
             Var("x1".into()),
@@ -208,7 +208,7 @@ fn get_funcs_works() {
         )),
     );
 
-    let funcs = formula.get_funcs();
+    let funcs = fml.get_funcs();
 
     let mut gt = HashSet::new();
     gt.insert(NonLogicalSymbol {
@@ -230,7 +230,7 @@ fn get_preds_works() {
     use language::Term::*;
     use std::collections::HashSet;
 
-    let formula = Formula::Forall(
+    let fml = Formula::Forall(
         Var("x0".into()),
         Box::new(Formula::Exists(
             Var("x1".into()),
@@ -253,7 +253,7 @@ fn get_preds_works() {
         )),
     );
 
-    let preds = formula.get_preds();
+    let preds = fml.get_preds();
 
     let mut gt = HashSet::new();
     gt.insert(NonLogicalSymbol {
@@ -280,7 +280,7 @@ fn finite_model_evaluate_works() {
     use model::*;
     use std::collections::HashMap;
 
-    let formula = Formula::Forall(
+    let fml = Formula::Forall(
         Var("x0".into()),
         Box::new(Formula::Exists(
             Var("x1".into()),
@@ -407,7 +407,7 @@ fn finite_model_evaluate_works() {
         assignment_r.insert(vec![], true);
     }
 
-    let truth_value = model.evaluate_formula(&formula);
+    let truth_value = model.evaluate_formula(&fml);
     assert_eq!(false, truth_value);
 
     macro_rules! hashmap {

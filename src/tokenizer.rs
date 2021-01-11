@@ -18,23 +18,24 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn _tokenize(&mut self) -> () {
+        use Token::*;
         if let Some(s) = self.iter.next() {
             let token = match s {
-                '(' => Token::LParen,
-                ')' => Token::RParen,
-                '~' => Token::Not,
-                '^' => Token::And,
-                'v' => Token::Or,
-                '>' => Token::Implies,
-                '=' => Token::Equal,
-                'V' => Token::Forall,
-                'E' => Token::Exists,
+                '(' => LParen,
+                ')' => RParen,
+                '~' => Not,
+                '^' => And,
+                'v' => Or,
+                '>' => Implies,
+                '=' => Equal,
+                'V' => Forall,
+                'E' => Exists,
                 ' ' => return self._tokenize(),
                 _ => {
                     let symbol = self
                         .iter
                         .take_while_ref(|s| !matches!(s, '(' | ')' | '=' | 'V' | 'E' | ' '));
-                    Token::Symbol(s.to_string() + &symbol.collect::<String>())
+                    Symbol(s.to_string() + &symbol.collect::<String>())
                 }
             };
             self.tokens.push(token);

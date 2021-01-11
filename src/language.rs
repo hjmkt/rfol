@@ -41,8 +41,8 @@ use std::collections::HashSet;
 impl Term {
     fn _get_vars(&self, vars: &mut HashSet<Term>) {
         match self {
-            Term::Var(s) => {
-                vars.insert(Term::Var(s.into()));
+            t @ Term::Var(_) => {
+                vars.insert(t.clone());
             }
             Term::Func(_, terms) => {
                 terms.iter().for_each(|term| term._get_vars(vars));
@@ -102,7 +102,7 @@ impl Term {
                     .map(|t| t.substitute(var.clone(), term.clone()))
                     .collect(),
             ),
-            t @ Term::Var(_) => t.substitute(var, term),
+            v => v.substitute(var, term),
         }
     }
 }
@@ -110,9 +110,9 @@ impl Term {
 impl Formula {
     fn _group_vars(&self, free_vars: &mut HashSet<Term>, bound_vars: &mut HashSet<Term>) {
         match self {
-            Formula::Forall(Term::Var(s), formula) | Formula::Exists(Term::Var(s), formula) => {
-                bound_vars.insert(Term::Var(s.into()));
-                formula._group_vars(free_vars, bound_vars);
+            Formula::Forall(var, fml) | Formula::Exists(var, fml) => {
+                bound_vars.insert(var.clone());
+                fml._group_vars(free_vars, bound_vars);
             }
             Formula::Pred(_, terms) => {
                 let vars = terms
@@ -129,14 +129,13 @@ impl Formula {
                     .filter(|var| !bound_vars.contains(var));
                 free_vars.extend(vars);
             }
-            Formula::Not(formula) => {
-                (*formula)._group_vars(free_vars, bound_vars);
+            Formula::Not(fml) => {
+                (*fml)._group_vars(free_vars, bound_vars);
             }
             Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
                 (*lhs)._group_vars(free_vars, bound_vars);
                 (*rhs)._group_vars(free_vars, bound_vars);
             }
-            _ => assert!(false),
         }
     }
 
@@ -156,9 +155,7 @@ impl Formula {
 
     fn _get_funcs(&self, funcs: &mut HashSet<NonLogicalSymbol>) {
         match self {
-            Formula::Forall(_, formula) | Formula::Exists(_, formula) => {
-                formula._get_funcs(funcs);
-            }
+            Formula::Forall(_, formula) | Formula::Exists(_, formula) => formula._get_funcs(funcs),
             Formula::Pred(_, terms) => {
                 funcs.extend(terms.iter().flat_map(|term| term.get_funcs()));
             }
@@ -166,9 +163,7 @@ impl Formula {
                 let terms = [lhs, rhs];
                 funcs.extend(terms.iter().flat_map(|term| term.get_funcs()));
             }
-            Formula::Not(formula) => {
-                (*formula)._get_funcs(funcs);
-            }
+            Formula::Not(fml) => (*fml)._get_funcs(funcs),
             Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
                 (*lhs)._get_funcs(funcs);
                 (*rhs)._get_funcs(funcs);
@@ -184,18 +179,14 @@ impl Formula {
 
     fn _get_preds(&self, preds: &mut HashSet<NonLogicalSymbol>) {
         match self {
-            Formula::Forall(_, formula) | Formula::Exists(_, formula) => {
-                formula._get_preds(preds);
-            }
+            Formula::Forall(_, fml) | Formula::Exists(_, fml) => fml._get_preds(preds),
             Formula::Pred(name, terms) => {
                 preds.insert(NonLogicalSymbol {
                     name: name.into(),
                     arity: terms.len() as u32,
                 });
             }
-            Formula::Not(formula) => {
-                (*formula)._get_preds(preds);
-            }
+            Formula::Not(fml) => (*fml)._get_preds(preds),
             Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
                 (*lhs)._get_preds(preds);
                 (*rhs)._get_preds(preds);
@@ -237,9 +228,7 @@ impl Formula {
                 lhs._get_subterms(terms);
                 rhs._get_subterms(terms);
             }
-            Formula::Forall(_, fml) | Formula::Exists(_, fml) => {
-                fml._get_subterms(terms);
-            }
+            Formula::Forall(_, fml) | Formula::Exists(_, fml) => fml._get_subterms(terms),
         }
     }
 

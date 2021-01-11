@@ -47,7 +47,7 @@ impl<'a> Parser<'a> {
     fn _parse(&mut self) -> Result<Formula, &'static str> {
         match self.iter.next() {
             Some(Token::LParen) => {
-                let formula = match self.iter.next() {
+                let fml = match self.iter.next() {
                     Some(token) => match token {
                         Token::Symbol(s) => {
                             let mut terms = vec![];
@@ -62,8 +62,8 @@ impl<'a> Parser<'a> {
                             Ok(Formula::Pred(s.into(), terms))
                         }
                         Token::Not => {
-                            if let Ok(formula) = self._parse() {
-                                Ok(Formula::Not(Box::new(formula)))
+                            if let Ok(fml) = self._parse() {
+                                Ok(Formula::Not(Box::new(fml)))
                             } else {
                                 Err("Parse error.")
                             }
@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
                     _ => Err("Parse error."),
                 };
                 if let Some(Token::RParen) = self.iter.next() {
-                    formula
+                    fml
                 } else {
                     Err("Parse error.")
                 }

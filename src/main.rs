@@ -10,15 +10,15 @@ fn main() {
     println!("{:?}", tokens);
 
     let mut parser = parser::Parser::new();
-    if let Ok(formula) = parser.parse(&tokens) {
-        println!("{:?}", formula);
-        let free_vars = formula.get_free_vars();
-        let bound_vars = formula.get_bound_vars();
+    if let Ok(fml) = parser.parse(&tokens) {
+        println!("{:?}", fml);
+        let free_vars = fml.get_free_vars();
+        let bound_vars = fml.get_bound_vars();
         println!("{:?}", free_vars);
         println!("{:?}", bound_vars);
-        let funcs = formula.get_funcs();
+        let funcs = fml.get_funcs();
         println!("{:?}", funcs);
-        let preds = formula.get_preds();
+        let preds = fml.get_preds();
         println!("{:?}", preds);
 
         use language::NonLogicalSymbol;
@@ -112,7 +112,7 @@ fn main() {
             assignment_q.insert(vec![], true);
         }
 
-        let truth_value = model.evaluate_formula(&formula);
+        let truth_value = model.evaluate_formula(&fml);
         println!("{:?}", truth_value);
     } else {
         println!("{:?}", parser);
