@@ -1,16 +1,7 @@
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Term {
     Var(String),
     Func(String, Vec<Term>),
-}
-
-impl Clone for Term {
-    fn clone(&self) -> Term {
-        match self {
-            Term::Var(s) => Term::Var(s.into()),
-            Term::Func(s, terms) => Term::Func(s.into(), terms.iter().map(|t| t.clone()).collect()),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -591,8 +582,116 @@ impl LK {
                         false
                     }
             }
-            // TODO
-            _ => false,
+            LK::ForallRight(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent
+                    && premise.succedent.split_last().unwrap().1
+                        == conclusion.succedent.split_last().unwrap().1
+                    && if let Formula::Forall(term, fml) = &conclusion.succedent.last().unwrap() {
+                        let mut valid = false;
+                        for var in premise.succedent.last().unwrap().get_free_vars() {
+                            if fml.is_substitutible(term.clone(), var.clone()) {
+                                let tfml = fml.substitute(term.clone(), var.clone());
+                                if &tfml == premise.succedent.last().unwrap() {
+                                    if !premise
+                                        .antecedent
+                                        .iter()
+                                        .flat_map(|f| f.get_free_vars())
+                                        .collect::<Vec<Term>>()
+                                        .contains(&var.clone())
+                                        && !premise
+                                            .succedent
+                                            .split_last()
+                                            .unwrap()
+                                            .1
+                                            .iter()
+                                            .flat_map(|f| f.get_free_vars())
+                                            .collect::<Vec<Term>>()
+                                            .contains(&var.clone())
+                                    {
+                                        valid = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        valid
+                    } else {
+                        false
+                    }
+            }
+            LK::ExistsRight(premise, conclusion) => {
+                premise.antecedent == conclusion.antecedent
+                    && premise.succedent.split_last().unwrap().1
+                        == conclusion.succedent.split_last().unwrap().1
+                    && if let Formula::Exists(Term::Var(s), fml) =
+                        &conclusion.succedent.last().unwrap()
+                    {
+                        if !fml.get_bound_vars().contains(&Term::Var(s.into())) {
+                            let mut valid = false;
+                            for term in fml.get_subterms() {
+                                if fml.is_substitutible(Term::Var(s.into()), term.clone()) {
+                                    let tfml = fml.substitute(Term::Var(s.into()), term);
+                                    if &tfml == premise.succedent.last().unwrap() {
+                                        valid = true;
+                                        break;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                            valid
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+            }
+            LK::ExistsLeft(premise, conclusion) => {
+                premise.succedent == conclusion.succedent
+                    && premise.succedent.split_last().unwrap().1
+                        == conclusion.succedent.split_last().unwrap().1
+                    && if let Formula::Forall(term, fml) = &conclusion.antecedent[0] {
+                        let mut valid = false;
+                        for var in premise.antecedent[0].get_free_vars() {
+                            if fml.is_substitutible(term.clone(), var.clone()) {
+                                let tfml = fml.substitute(term.clone(), var.clone());
+                                if tfml == premise.antecedent[0] {
+                                    if !premise
+                                        .succedent
+                                        .iter()
+                                        .flat_map(|f| f.get_free_vars())
+                                        .collect::<Vec<Term>>()
+                                        .contains(&var.clone())
+                                        && !premise.antecedent[1..]
+                                            .iter()
+                                            .flat_map(|f| f.get_free_vars())
+                                            .collect::<Vec<Term>>()
+                                            .contains(&var.clone())
+                                    {
+                                        valid = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        valid
+                    } else {
+                        false
+                    }
+            }
+            LK::Cut([lpremise, rpremise], conclusion) => {
+                if lpremise.succedent.last().unwrap() == &rpremise.antecedent[0] {
+                    let gamma = &lpremise.antecedent;
+                    let delta = lpremise.succedent.split_last().unwrap().1;
+                    let pi = &rpremise.antecedent[1..];
+                    let sigma = &rpremise.succedent;
+                    conclusion.antecedent == [gamma, delta].concat()
+                        && conclusion.succedent == [pi, &sigma].concat()
+                } else {
+                    false
+                }
+            }
         }
     }
 }
