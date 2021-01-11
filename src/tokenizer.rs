@@ -25,6 +25,7 @@ impl<'a> Tokenizer<'a> {
                 '~' => Token::Not,
                 '^' => Token::And,
                 'v' => Token::Or,
+                '>' => Token::Implies,
                 '=' => Token::Equal,
                 'V' => Token::Forall,
                 'E' => Token::Exists,

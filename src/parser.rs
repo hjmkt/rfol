@@ -68,11 +68,12 @@ impl<'a> Parser<'a> {
                                 Err("Parse error.")
                             }
                         }
-                        t @ Token::And | t @ Token::Or => {
+                        t @ Token::And | t @ Token::Or | t @ Token::Implies => {
                             if let (Ok(lhs), Ok(rhs)) = (self._parse(), self._parse()) {
                                 match t {
                                     Token::And => Ok(Formula::And(Box::new(lhs), Box::new(rhs))),
-                                    _ => Ok(Formula::Or(Box::new(lhs), Box::new(rhs))),
+                                    Token::Or => Ok(Formula::Or(Box::new(lhs), Box::new(rhs))),
+                                    _ => Ok(Formula::Implies(Box::new(lhs), Box::new(rhs))),
                                 }
                             } else {
                                 Err("Parse error.")

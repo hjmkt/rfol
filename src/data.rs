@@ -1,7 +1,16 @@
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Term {
     Var(String),
     Func(String, Vec<Term>),
+}
+
+impl Clone for Term {
+    fn clone(&self) -> Term {
+        match self {
+            Term::Var(s) => Term::Var(s.into()),
+            Term::Func(s, terms) => Term::Func(s.into(), terms.iter().map(|t| t.clone()).collect()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -12,6 +21,7 @@ pub enum Token {
     Not,
     And,
     Or,
+    Implies,
     Symbol(String),
     Forall,
     Exists,
@@ -72,6 +82,37 @@ impl Term {
         let mut funcs: HashSet<NonLogicalSymbol> = HashSet::new();
         self._get_funcs(&mut funcs);
         funcs
+    }
+
+    fn _get_subterms(&self, terms: &mut HashSet<Term>) {
+        match self {
+            Term::Func(_, subterms) => {
+                for subterm in subterms {
+                    terms.insert(subterm.clone());
+                }
+            }
+            _ => {}
+        }
+        terms.insert(self.clone());
+    }
+
+    pub fn get_subterms(&self) -> HashSet<Term> {
+        let mut terms = HashSet::new();
+        self._get_subterms(&mut terms);
+        terms
+    }
+
+    pub fn substitute(&self, var: Term, term: Term) -> Term {
+        match self {
+            Term::Func(s, terms) => Term::Func(
+                s.into(),
+                terms
+                    .iter()
+                    .map(|t| t.substitute(var.clone(), term.clone()))
+                    .collect(),
+            ),
+            t @ Term::Var(_) => t.substitute(var, term),
+        }
     }
 }
 
@@ -186,6 +227,71 @@ impl Formula {
             term_vars.iter().any(|v| !bound_vars.contains(v))
         } else {
             true
+        }
+    }
+
+    fn _get_subterms(&self, terms: &mut HashSet<Term>) {
+        match self {
+            Formula::Pred(_, subterms) => {
+                for subterm in subterms {
+                    terms.insert(subterm.clone());
+                }
+            }
+            Formula::Equal(lterm, rterm) => {
+                terms.insert(lterm.clone());
+                terms.insert(rterm.clone());
+            }
+            Formula::Not(fml) => fml._get_subterms(terms),
+            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
+                lhs._get_subterms(terms);
+                rhs._get_subterms(terms);
+            }
+            Formula::Forall(_, fml) | Formula::Exists(_, fml) => {
+                fml._get_subterms(terms);
+            }
+        }
+    }
+
+    pub fn get_subterms(&self) -> HashSet<Term> {
+        let mut terms = HashSet::new();
+        self._get_subterms(&mut terms);
+        terms
+    }
+
+    pub fn substitute(&self, var: Term, term: Term) -> Formula {
+        match self {
+            Formula::Pred(s, subterms) => Formula::Pred(
+                s.into(),
+                subterms
+                    .iter()
+                    .map(|t| t.substitute(var.clone(), term.clone()))
+                    .collect(),
+            ),
+            Formula::Equal(lterm, rterm) => Formula::Equal(
+                lterm.substitute(var.clone(), term.clone()),
+                rterm.substitute(var.clone(), term.clone()),
+            ),
+            Formula::Not(fml) => Formula::Not(Box::new((*fml).substitute(var, term))),
+            Formula::And(lhs, rhs) => Formula::And(
+                Box::new((*lhs).substitute(var.clone(), term.clone())),
+                Box::new((*rhs).substitute(var.clone(), term.clone())),
+            ),
+            Formula::Or(lhs, rhs) => Formula::Or(
+                Box::new((*lhs).substitute(var.clone(), term.clone())),
+                Box::new((*rhs).substitute(var.clone(), term.clone())),
+            ),
+            Formula::Implies(lhs, rhs) => Formula::Implies(
+                Box::new((*lhs).substitute(var.clone(), term.clone())),
+                Box::new((*rhs).substitute(var, term)),
+            ),
+            Formula::Forall(var, fml) => Formula::Forall(
+                var.clone(),
+                Box::new((*fml).substitute(var.clone(), term.clone())),
+            ),
+            Formula::Exists(var, fml) => Formula::Exists(
+                var.clone(),
+                Box::new((*fml).substitute(var.clone(), term.clone())),
+            ),
         }
     }
 }
@@ -460,9 +566,31 @@ impl LK {
                         false
                     }
             }
-            //LK::ForallLeft(premise, conclusion) => {
-
-            //}
+            LK::ForallLeft(premise, conclusion) => {
+                premise.succedent == conclusion.succedent
+                    && premise.antecedent[1..] == conclusion.antecedent[1..]
+                    && if let Formula::Forall(Term::Var(s), fml) = &conclusion.antecedent[0] {
+                        if !fml.get_bound_vars().contains(&Term::Var(s.into())) {
+                            let mut valid = false;
+                            for term in fml.get_subterms() {
+                                if fml.is_substitutible(Term::Var(s.into()), term.clone()) {
+                                    let tfml = fml.substitute(Term::Var(s.into()), term);
+                                    if tfml == premise.antecedent[0] {
+                                        valid = true;
+                                        break;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                            valid
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+            }
             // TODO
             _ => false,
         }
