@@ -1,5 +1,7 @@
-mod data;
+mod language;
+mod model;
 mod parser;
+mod proof;
 mod tokenizer;
 
 fn main() {
@@ -19,10 +21,9 @@ fn main() {
         let preds = formula.get_preds();
         println!("{:?}", preds);
 
-        use data::FiniteModel;
-        use data::Model;
-        use data::NonLogicalSymbol;
-        use data::Term::*;
+        use language::NonLogicalSymbol;
+        use language::Term::*;
+        use model::*;
         use std::collections::HashMap;
 
         let mut model = FiniteModel::new(2);

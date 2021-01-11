@@ -1,6 +1,6 @@
 extern crate itertools;
 
-use crate::data::*;
+use crate::language::*;
 use itertools::Itertools;
 
 #[derive(Debug)]

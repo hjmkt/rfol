@@ -1,4 +1,4 @@
-use crate::data::*;
+use crate::language::*;
 
 #[derive(Debug)]
 pub struct Parser<'a> {

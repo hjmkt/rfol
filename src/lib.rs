@@ -1,10 +1,12 @@
-pub mod data;
+pub mod language;
+pub mod model;
 pub mod parser;
+pub mod proof;
 pub mod tokenizer;
 
 #[test]
 fn tokenizer_works() {
-    use data::Token::*;
+    use language::Token::*;
     use tokenizer::Tokenizer;
 
     let mut tokenizer = Tokenizer::new();
@@ -56,9 +58,9 @@ fn tokenizer_works() {
 
 #[test]
 fn parser_works() {
-    use data::Formula;
-    use data::Term::*;
-    use data::Token::*;
+    use language::Formula;
+    use language::Term::*;
+    use language::Token::*;
     use parser::Parser;
 
     let mut parser = Parser::new();
@@ -135,8 +137,8 @@ fn parser_works() {
 
 #[test]
 fn var_group_works() {
-    use data::Formula;
-    use data::Term::*;
+    use language::Formula;
+    use language::Term::*;
     use std::collections::HashSet;
 
     let formula = Formula::Forall(
@@ -178,9 +180,9 @@ fn var_group_works() {
 
 #[test]
 fn get_funcs_works() {
-    use data::Formula;
-    use data::NonLogicalSymbol;
-    use data::Term::*;
+    use language::Formula;
+    use language::NonLogicalSymbol;
+    use language::Term::*;
     use std::collections::HashSet;
 
     let formula = Formula::Forall(
@@ -223,9 +225,9 @@ fn get_funcs_works() {
 
 #[test]
 fn get_preds_works() {
-    use data::Formula;
-    use data::NonLogicalSymbol;
-    use data::Term::*;
+    use language::Formula;
+    use language::NonLogicalSymbol;
+    use language::Term::*;
     use std::collections::HashSet;
 
     let formula = Formula::Forall(
@@ -272,11 +274,10 @@ fn get_preds_works() {
 
 #[test]
 fn finite_model_evaluate_works() {
-    use data::FiniteModel;
-    use data::Formula;
-    use data::Model;
-    use data::NonLogicalSymbol;
-    use data::Term::*;
+    use language::Formula;
+    use language::NonLogicalSymbol;
+    use language::Term::*;
+    use model::*;
     use std::collections::HashMap;
 
     let formula = Formula::Forall(
