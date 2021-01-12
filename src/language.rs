@@ -1,9 +1,3 @@
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum Term {
-    Var(String),
-    Func(String, Vec<Term>),
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     LParen,
@@ -19,6 +13,37 @@ pub enum Token {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum Term {
+    Var(String),
+    Func(String, Vec<Term>),
+}
+
+macro_rules! hashset {
+    () => { std::collections::HashSet::new() };
+    ($( $e: expr ),*) => {{
+         let mut set = ::std::collections::HashSet::new();
+         $( set.insert($e); )*
+         set
+    }};
+}
+
+macro_rules! hashmap {
+    () => { std::collections::HashMap::new() };
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }};
+}
+
+macro_rules! var{ ($name: expr) => { Term::Var($name.into()) }}
+
+macro_rules! func{
+    ($name: expr) => { Term::Func($name.into(), vec![]) };
+    ($name: expr, $($args: expr),*) => { Term::Func($name.into(), vec![$( $args ),*]) };
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Formula {
     Pred(String, Vec<Term>),
     Equal(Term, Term),
@@ -30,11 +55,25 @@ pub enum Formula {
     Exists(Term, Box<Formula>),
 }
 
+macro_rules! pred{
+    ($name: expr) => { Box::new(Formula::Pred($name.into(), vec![])) };
+    ($name: expr, $($args: expr),*) => { Box::new(Formula::Pred($name.into(), vec![$( $args ),*])) };
+}
+macro_rules! equal{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::Equal($lhs, $rhs)) }}
+macro_rules! not{ ($fml: expr) => { Box::new(Formula::Not($fml)) }}
+macro_rules! and{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::And($lhs, $rhs)) }}
+macro_rules! or{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::Or($lhs, $rhs)) }}
+macro_rules! implies{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::Implies($lhs, $rhs)) }}
+macro_rules! forall{ ($var: expr, $fml: expr) => { Box::new(Formula::Forall($var, $fml)) }}
+macro_rules! exists{ ($var: expr, $fml: expr) => { Box::new(Formula::Exists($var, $fml)) }}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct NonLogicalSymbol {
     pub name: String,
     pub arity: u32,
 }
+
+macro_rules! nlsym{ ($name: expr, $arity: expr) => { NonLogicalSymbol{name: $name.into(), arity: $arity} }}
 
 use std::collections::HashSet;
 
@@ -79,7 +118,7 @@ impl Term {
         match self {
             Term::Func(_, subterms) => {
                 for subterm in subterms {
-                    terms.insert(subterm.clone());
+                    terms.extend(subterm.get_subterms());
                 }
             }
             _ => {}
@@ -102,7 +141,7 @@ impl Term {
                     .map(|t| t.substitute(var.clone(), term.clone()))
                     .collect(),
             ),
-            v => v.substitute(var, term),
+            v => if v == &var { term } else { v.clone() }
         }
     }
 }
@@ -216,12 +255,12 @@ impl Formula {
         match self {
             Formula::Pred(_, subterms) => {
                 for subterm in subterms {
-                    terms.insert(subterm.clone());
+                    terms.extend(subterm.get_subterms());
                 }
             }
             Formula::Equal(lterm, rterm) => {
-                terms.insert(lterm.clone());
-                terms.insert(rterm.clone());
+                terms.extend(lterm.get_subterms());
+                terms.extend(rterm.get_subterms());
             }
             Formula::Not(fml) => fml._get_subterms(terms),
             Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {

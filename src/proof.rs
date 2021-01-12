@@ -1,10 +1,12 @@
 use crate::language::*;
 
+#[derive(Debug, Clone)]
 pub struct Sequent {
     pub antecedent: Vec<Formula>,
     pub succedent: Vec<Formula>,
 }
 
+#[derive(Debug, Clone)]
 pub enum LK {
     Axiom(Sequent),
     WeakeningLeft(Box<LK>, Sequent),
@@ -162,9 +164,9 @@ impl Proof for LK {
                     && rpremise.last().succedent == conclusion.succedent
                     && lpremise.last().antecedent[1..] == conclusion.antecedent[1..]
                     && rpremise.last().antecedent[1..] == conclusion.antecedent[1..]
-                    && if let Formula::Or(lhs, rhs) = &conclusion.succedent[0] {
-                        lpremise.last().succedent[0] == **lhs
-                            && rpremise.last().succedent[0] == **rhs
+                    && if let Formula::Or(lhs, rhs) = &conclusion.antecedent[0] {
+                        lpremise.last().antecedent[0] == **lhs
+                            && rpremise.last().antecedent[0] == **rhs
                     } else {
                         false
                     }
@@ -173,8 +175,8 @@ impl Proof for LK {
                 premise.last().antecedent == conclusion.antecedent
                     && premise.last().succedent.split_last().unwrap().1
                         == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Or(fml, _) = conclusion.antecedent.last().unwrap() {
-                        &**fml == premise.last().antecedent.last().unwrap()
+                    && if let Formula::Or(fml, _) = conclusion.succedent.last().unwrap() {
+                        &**fml == premise.last().succedent.last().unwrap()
                     } else {
                         false
                     }
@@ -183,8 +185,8 @@ impl Proof for LK {
                 premise.last().antecedent == conclusion.antecedent
                     && premise.last().succedent.split_last().unwrap().1
                         == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Or(_, fml) = conclusion.antecedent.last().unwrap() {
-                        &**fml == premise.last().antecedent.last().unwrap()
+                    && if let Formula::Or(_, fml) = conclusion.succedent.last().unwrap() {
+                        &**fml == premise.last().succedent.last().unwrap()
                     } else {
                         false
                     }
@@ -197,9 +199,13 @@ impl Proof for LK {
                 let fml2 = &rpremise.last().antecedent[0];
                 let pi = &rpremise.last().antecedent[1..];
                 let sigma = &rpremise.last().succedent;
-                fml1 == &fml2
-                    && conclusion.antecedent == [gamma, pi].concat()
+                conclusion.antecedent[1..] == [gamma, pi].concat()
                     && conclusion.succedent == [delta, sigma].concat()
+                    && if let Formula::Implies(lhs, rhs) = &conclusion.antecedent[0]{
+                        &**lhs == *fml1 && **rhs == *fml2
+                    } else{
+                        false
+                    }
             }
             LK::ImpliesRight(premise, conclusion) => {
                 premise.last().antecedent[1..] == conclusion.antecedent
@@ -233,12 +239,12 @@ impl Proof for LK {
             LK::ForallLeft(premise, conclusion) => {
                 premise.last().succedent == conclusion.succedent
                     && premise.last().antecedent[1..] == conclusion.antecedent[1..]
-                    && if let Formula::Forall(Term::Var(s), fml) = &conclusion.antecedent[0] {
-                        if !fml.get_bound_vars().contains(&Term::Var(s.into())) {
+                    && if let Formula::Forall(var, fml) = &conclusion.antecedent[0] {
+                        if !fml.get_bound_vars().contains(var) {
                             let mut valid = false;
-                            for term in fml.get_subterms() {
-                                if fml.is_substitutible(Term::Var(s.into()), term.clone()) {
-                                    let tfml = fml.substitute(Term::Var(s.into()), term);
+                            for term in premise.last().antecedent[0].get_subterms() {
+                                if fml.is_substitutible(var.clone(), term.clone()) {
+                                    let tfml = fml.substitute(var.clone(), term);
                                     if tfml == premise.last().antecedent[0] {
                                         valid = true;
                                         break;
@@ -303,7 +309,7 @@ impl Proof for LK {
                     {
                         if !fml.get_bound_vars().contains(&Term::Var(s.into())) {
                             let mut valid = false;
-                            for term in fml.get_subterms() {
+                            for term in premise.last().succedent.last().unwrap().get_subterms() {
                                 if fml.is_substitutible(Term::Var(s.into()), term.clone()) {
                                     let tfml = fml.substitute(Term::Var(s.into()), term);
                                     if &tfml == premise.last().succedent.last().unwrap() {
@@ -324,9 +330,9 @@ impl Proof for LK {
             }
             LK::ExistsLeft(premise, conclusion) => {
                 premise.last().succedent == conclusion.succedent
-                    && premise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Forall(term, fml) = &conclusion.antecedent[0] {
+                    && premise.last().antecedent[1..]
+                        == conclusion.antecedent[1..]
+                    && if let Formula::Exists(term, fml) = &conclusion.antecedent[0] {
                         let mut valid = false;
                         for var in premise.last().antecedent[0].get_free_vars() {
                             if fml.is_substitutible(term.clone(), var.clone()) {
