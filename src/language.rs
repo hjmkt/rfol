@@ -36,7 +36,11 @@ macro_rules! hashmap {
     }};
 }
 
-macro_rules! var{ ($name: expr) => { Term::Var($name.into()) }}
+macro_rules! var {
+    ($name: expr) => {
+        Term::Var($name.into())
+    };
+}
 
 macro_rules! func{
     ($name: expr) => { Term::Func($name.into(), vec![]) };
@@ -59,13 +63,41 @@ macro_rules! pred{
     ($name: expr) => { Box::new(Formula::Pred($name.into(), vec![])) };
     ($name: expr, $($args: expr),*) => { Box::new(Formula::Pred($name.into(), vec![$( $args ),*])) };
 }
-macro_rules! equal{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::Equal($lhs, $rhs)) }}
-macro_rules! not{ ($fml: expr) => { Box::new(Formula::Not($fml)) }}
-macro_rules! and{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::And($lhs, $rhs)) }}
-macro_rules! or{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::Or($lhs, $rhs)) }}
-macro_rules! implies{ ($lhs: expr, $rhs: expr) => { Box::new(Formula::Implies($lhs, $rhs)) }}
-macro_rules! forall{ ($var: expr, $fml: expr) => { Box::new(Formula::Forall($var, $fml)) }}
-macro_rules! exists{ ($var: expr, $fml: expr) => { Box::new(Formula::Exists($var, $fml)) }}
+macro_rules! equal {
+    ($lhs: expr, $rhs: expr) => {
+        Box::new(Formula::Equal($lhs, $rhs))
+    };
+}
+macro_rules! not {
+    ($fml: expr) => {
+        Box::new(Formula::Not($fml))
+    };
+}
+macro_rules! and {
+    ($lhs: expr, $rhs: expr) => {
+        Box::new(Formula::And($lhs, $rhs))
+    };
+}
+macro_rules! or {
+    ($lhs: expr, $rhs: expr) => {
+        Box::new(Formula::Or($lhs, $rhs))
+    };
+}
+macro_rules! implies {
+    ($lhs: expr, $rhs: expr) => {
+        Box::new(Formula::Implies($lhs, $rhs))
+    };
+}
+macro_rules! forall {
+    ($var: expr, $fml: expr) => {
+        Box::new(Formula::Forall($var, $fml))
+    };
+}
+macro_rules! exists {
+    ($var: expr, $fml: expr) => {
+        Box::new(Formula::Exists($var, $fml))
+    };
+}
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct NonLogicalSymbol {
@@ -73,7 +105,14 @@ pub struct NonLogicalSymbol {
     pub arity: u32,
 }
 
-macro_rules! nlsym{ ($name: expr, $arity: expr) => { NonLogicalSymbol{name: $name.into(), arity: $arity} }}
+macro_rules! nlsym {
+    ($name: expr, $arity: expr) => {
+        NonLogicalSymbol {
+            name: $name.into(),
+            arity: $arity,
+        }
+    };
+}
 
 use std::collections::HashSet;
 
@@ -141,7 +180,13 @@ impl Term {
                     .map(|t| t.substitute(var.clone(), term.clone()))
                     .collect(),
             ),
-            v => if v == &var { term } else { v.clone() }
+            v => {
+                if v == &var {
+                    term
+                } else {
+                    v.clone()
+                }
+            }
         }
     }
 }

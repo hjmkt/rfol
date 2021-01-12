@@ -1,9 +1,10 @@
-#[macro_use]
 #[allow(unused_macros)]
-
+#[macro_use]
 pub mod language;
 pub mod model;
 pub mod parser;
+#[allow(unused_macros)]
+#[macro_use]
 pub mod proof;
 pub mod tokenizer;
 
@@ -55,14 +56,13 @@ fn tokenizer_works() {
         RParen,
         RParen,
     ];
-
     assert_eq!(gt, tokens);
 }
 
 #[test]
 fn parser_works() {
-    use language::*;
     use language::Token::*;
+    use language::*;
     use parser::Parser;
 
     let mut parser = Parser::new();
@@ -329,435 +329,297 @@ fn lk_inference_rule_works() {
     use language::*;
     use proof::*;
 
-    let valid_axiom = LK::Axiom(Sequent{
-        antecedent: vec![*pred!("p")],
-        succedent: vec![*pred!("p")],
-    });
+    let valid_axiom = LK::Axiom(sequent!(*pred!("p") => *pred!("p")));
     assert!(valid_axiom.is_valid_inference());
 
-    let invalid_axiom = LK::Axiom(Sequent{
-        antecedent: vec![*pred!("p")],
-        succedent: vec![*pred!("q")],
-    });
+    let invalid_axiom = LK::Axiom(sequent!(*pred!("p") => *pred!("q")));
     assert!(!invalid_axiom.is_valid_inference());
 
-    let valid_weakening_left = LK::WeakeningLeft(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("p"), *pred!("p")],
-        succedent: vec![*pred!("p")],
-    });
+    let valid_weakening_left = LK::WeakeningLeft(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p"), *pred!("p") => *pred!("p")),
+    );
     assert!(valid_weakening_left.is_valid_inference());
 
-    let invalid_weakening_left = LK::WeakeningLeft(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("q"), *pred!("q")],
-        succedent: vec![*pred!("p")],
-    });
+    let invalid_weakening_left = LK::WeakeningLeft(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("q"), *pred!("q") => *pred!("p")),
+    );
     assert!(!invalid_weakening_left.is_valid_inference());
 
-    let valid_weakening_right = LK::WeakeningRight(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("p")],
-        succedent: vec![*pred!("p"), *pred!("p")],
-    });
+    let valid_weakening_right = LK::WeakeningRight(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p") => *pred!("p"), *pred!("p")),
+    );
     assert!(valid_weakening_right.is_valid_inference());
 
-    let invalid_weakening_right = LK::WeakeningRight(Box::new(valid_axiom.clone()), Sequent{
-        succedent: vec![*pred!("p")],
-        antecedent: vec![*pred!("q"), *pred!("q")],
-    });
+    let invalid_weakening_right = LK::WeakeningRight(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p") => *pred!("q"), *pred!("q")),
+    );
     assert!(!invalid_weakening_right.is_valid_inference());
 
-    let valid_contraction_left = LK::ContractionLeft(Box::new(valid_weakening_left.clone()), valid_axiom.last().clone());
+    let valid_contraction_left = LK::ContractionLeft(
+        Box::new(valid_weakening_left.clone()),
+        valid_axiom.last().clone(),
+    );
     assert!(valid_contraction_left.is_valid_inference());
 
-    let invalid_contraction_left = LK::ContractionLeft(Box::new(valid_weakening_left.clone()), valid_weakening_left.clone().last().clone());
+    let invalid_contraction_left = LK::ContractionLeft(
+        Box::new(valid_weakening_left.clone()),
+        valid_weakening_left.clone().last().clone(),
+    );
     assert!(!invalid_contraction_left.is_valid_inference());
 
-    let valid_contraction_right = LK::ContractionRight(Box::new(valid_weakening_right.clone()), valid_axiom.last().clone());
+    let valid_contraction_right = LK::ContractionRight(
+        Box::new(valid_weakening_right.clone()),
+        valid_axiom.last().clone(),
+    );
     assert!(valid_contraction_right.is_valid_inference());
 
-    let invalid_contraction_right = LK::ContractionRight(Box::new(valid_weakening_right.clone()), valid_weakening_right.last().clone());
+    let invalid_contraction_right = LK::ContractionRight(
+        Box::new(valid_weakening_right.clone()),
+        valid_weakening_right.last().clone(),
+    );
     assert!(!invalid_contraction_right.is_valid_inference());
 
     let valid_exchange_left = LK::ExchangeLeft(
-        Box::new(LK::Axiom( Sequent{
-            antecedent: vec![*pred!("p"), *pred!("q")],
-            succedent: vec![*pred!("p"), *pred!("q")],
-        })),
-        Sequent{
-            antecedent: vec![*pred!("q"), *pred!("p")],
-            succedent: vec![*pred!("p"), *pred!("q")],
-        }
+        Box::new(LK::Axiom(sequent!(
+            *pred!("p"), *pred!("q") => *pred!("p"), *pred!("q")
+        ))),
+        sequent!(*pred!("q"), *pred!("p") => *pred!("p"), *pred!("q")),
     );
     assert!(valid_exchange_left.is_valid_inference());
 
     let invalid_exchange_left = LK::ExchangeLeft(
-        Box::new(LK::Axiom( Sequent{
-            antecedent: vec![*pred!("p"), *pred!("q")],
-            succedent: vec![*pred!("p"), *pred!("q")],
-        })),
-        Sequent{
-            antecedent: vec![*pred!("p"), *pred!("q")],
-            succedent: vec![*pred!("p"), *pred!("q")],
-        }
+        Box::new(LK::Axiom(sequent!(
+            *pred!("p"), *pred!("q") => *pred!("p"), *pred!("q")
+        ))),
+        sequent!(*pred!("p"), *pred!("q") => *pred!("p"), *pred!("q")),
     );
     assert!(!invalid_exchange_left.is_valid_inference());
 
     let valid_exchange_right = LK::ExchangeRight(
-        Box::new(LK::Axiom( Sequent{
-            antecedent: vec![*pred!("p"), *pred!("q")],
-            succedent: vec![*pred!("p"), *pred!("q")],
-        })),
-        Sequent{
-            antecedent: vec![*pred!("p"), *pred!("q")],
-            succedent: vec![*pred!("q"), *pred!("p")],
-        }
+        Box::new(LK::Axiom(sequent!(
+            *pred!("p"), *pred!("q") => *pred!("p"), *pred!("q")
+        ))),
+        sequent!(*pred!("p"), *pred!("q") => *pred!("q"), *pred!("p")),
     );
     assert!(valid_exchange_right.is_valid_inference());
 
     let invalid_exchange_right = LK::ExchangeLeft(
-        Box::new(LK::Axiom( Sequent{
-            antecedent: vec![*pred!("p"), *pred!("q")],
-            succedent: vec![*pred!("p"), *pred!("q")],
-        })),
-        Sequent{
-            antecedent: vec![*pred!("p"), *pred!("q")],
-            succedent: vec![*pred!("p"), *pred!("q")],
-        }
+        Box::new(LK::Axiom(sequent!(
+            *pred!("p"), *pred!("q") => *pred!("p"), *pred!("q")
+        ))),
+        sequent!(*pred!("p"), *pred!("q") => *pred!("p"), *pred!("q")),
     );
     assert!(!invalid_exchange_right.is_valid_inference());
 
-    let valid_and_left1 = LK::AndLeft1(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*and!(pred!("p"), pred!("q"))],
-        succedent: vec![*pred!("p")],
-    });
+    let valid_and_left1 = LK::AndLeft1(
+        Box::new(valid_axiom.clone()),
+        sequent!(*and!(pred!("p"), pred!("q")) => *pred!("p"))
+    );
     assert!(valid_and_left1.is_valid_inference());
 
-    let invalid_and_left1 = LK::AndLeft1(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*or!(pred!("p"), pred!("q"))],
-        succedent: vec![*pred!("p")],
-    });
+    let invalid_and_left1 = LK::AndLeft1(
+        Box::new(valid_axiom.clone()),
+        sequent!(*or!(pred!("p"), pred!("q")) => *pred!("p"))
+    );
     assert!(!invalid_and_left1.is_valid_inference());
 
-    let valid_and_left2 = LK::AndLeft2(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*and!(pred!("q"), pred!("p"))],
-        succedent: vec![*pred!("p")],
-    });
+    let valid_and_left2 = LK::AndLeft2(
+        Box::new(valid_axiom.clone()),
+        sequent!(*and!(pred!("q"), pred!("p")) => *pred!("p"))
+    );
     assert!(valid_and_left2.is_valid_inference());
 
-    let invalid_and_left2 = LK::AndLeft2(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*or!(pred!("q"), pred!("p"))],
-        succedent: vec![*pred!("p")],
-    });
+    let invalid_and_left2 = LK::AndLeft2(
+        Box::new(valid_axiom.clone()),
+        sequent!(*or!(pred!("q"), pred!("p")) => *pred!("p"))
+    );
     assert!(!invalid_and_left2.is_valid_inference());
 
     let valid_and_right = LK::AndRight(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("q")]
-            }),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("q"))),
         ]),
-        Sequent{
-            antecedent: vec![*pred!("p")],
-            succedent: vec![*and!(pred!("p"), pred!("q"))]
-        },
+        sequent!(*pred!("p") => *and!(pred!("p"), pred!("q"))),
     );
     assert!(valid_and_right.is_valid_inference());
 
     let invalid_and_right = LK::AndRight(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("q")]
-            }),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("q"))),
         ]),
-        Sequent{
-            antecedent: vec![*pred!("q")],
-            succedent: vec![*pred!("q")]
-        },
+        sequent!(*pred!("q") => *pred!("q")),
     );
     assert!(!invalid_and_right.is_valid_inference());
 
     let valid_or_left = LK::OrLeft(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("q")],
-                succedent: vec![*pred!("p")]
-            }),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("q") => *pred!("p"))),
         ]),
-        Sequent{
-            antecedent: vec![*or!(pred!("p"), pred!("q"))],
-            succedent: vec![*pred!("p")],
-        },
+        sequent!(*or!(pred!("p"), pred!("q")) => *pred!("p")),
     );
     assert!(valid_or_left.is_valid_inference());
 
     let invalid_or_left = LK::OrLeft(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("q")],
-                succedent: vec![*pred!("p")]
-            }),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("q") => *pred!("p"))),
         ]),
-        Sequent{
-            antecedent: vec![*pred!("q")],
-            succedent: vec![*pred!("q")]
-        },
+        sequent!(*pred!("q") => *pred!("q")),
     );
     assert!(!invalid_or_left.is_valid_inference());
 
-    let valid_or_right1 = LK::OrRight1(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("p")],
-        succedent: vec![*or!(pred!("p"), pred!("q"))],
-    });
+    let valid_or_right1 = LK::OrRight1(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p") => *or!(pred!("p"), pred!("q")))
+    );
     assert!(valid_or_right1.is_valid_inference());
 
-    let invalid_or_right1 = LK::OrRight1(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("p")],
-        succedent: vec![*and!(pred!("p"), pred!("q"))],
-    });
+    let invalid_or_right1 = LK::OrRight1(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p") => *and!(pred!("p"), pred!("q")))
+    );
     assert!(!invalid_or_right1.is_valid_inference());
 
-    let valid_or_right2 = LK::OrRight2(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("p")],
-        succedent: vec![*or!(pred!("q"), pred!("p"))],
-    });
+    let valid_or_right2 = LK::OrRight2(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p") => *or!(pred!("q"), pred!("p")))
+    );
     assert!(valid_or_right2.is_valid_inference());
 
-    let invalid_or_right2 = LK::OrRight2(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("p")],
-        succedent: vec![*and!(pred!("q"), pred!("p"))],
-    });
+    let invalid_or_right2 = LK::OrRight2(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p") => *and!(pred!("q"), pred!("p")))
+    );
     assert!(!invalid_or_right2.is_valid_inference());
 
     let valid_implies_left = LK::ImpliesLeft(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("q")],
-                succedent: vec![*pred!("q")]
-            }),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("q") => *pred!("q"))),
         ]),
-        Sequent{
-            antecedent: vec![*implies!(pred!("p"), pred!("q")), *pred!("p")],
-            succedent: vec![*pred!("q")]
-        }
+        sequent!(*implies!(pred!("p"), pred!("q")), *pred!("p") => *pred!("q")),
     );
     assert!(valid_implies_left.is_valid_inference());
 
     let invalid_implies_left = LK::ImpliesLeft(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("q")],
-                succedent: vec![*pred!("q")]
-            }),
+            LK::Axiom(sequent!(*pred!("p") => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("q") => *pred!("q"))),
         ]),
-        Sequent{
-            antecedent: vec![*implies!(pred!("q"), pred!("p")), *pred!("p")],
-            succedent: vec![*pred!("q")]
-        }
+        sequent!(*implies!(pred!("q"), pred!("p")), *pred!("p") => *pred!("q")),
     );
     assert!(!invalid_implies_left.is_valid_inference());
 
     let valid_implies_right = LK::ImpliesRight(
-        Box::new( LK::Axiom(Sequent{
-            antecedent: vec![*pred!("p"), *pred!("p")],
-            succedent: vec![*pred!("q"), *pred!("q")],
-        })),
-        Sequent{
-            antecedent: vec![*pred!("p")],
-            succedent: vec![*pred!("q"), *implies!(pred!("p"), pred!("q"))],
-        }
+        Box::new(LK::Axiom(sequent!(
+            *pred!("p"), *pred!("p") => *pred!("q"), *pred!("q")
+        ))),
+        sequent!(*pred!("p") => *pred!("q"), *implies!(pred!("p"), pred!("q"))),
     );
     assert!(valid_implies_right.is_valid_inference());
 
     let invalid_implies_right = LK::ImpliesRight(
-        Box::new( LK::Axiom(Sequent{
-            antecedent: vec![*pred!("p"), *pred!("p")],
-            succedent: vec![*pred!("q"), *pred!("q")],
-        })),
-        Sequent{
-            antecedent: vec![*pred!("p")],
-            succedent: vec![*pred!("q"), *implies!(pred!("q"), pred!("p"))],
-        }
+        Box::new(LK::Axiom(sequent!(
+            *pred!("p"), *pred!("p") => *pred!("q"), *pred!("q")
+        ))),
+        sequent!(*pred!("p") => *pred!("q"), *implies!(pred!("q"), pred!("p"))),
     );
     assert!(!invalid_implies_right.is_valid_inference());
 
-    let valid_not_left = LK::NotLeft(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*not!(pred!("p")), *pred!("p")],
-        succedent: vec![]
-    });
+    let valid_not_left = LK::NotLeft(
+        Box::new(valid_axiom.clone()),
+        sequent!(*not!(pred!("p")), *pred!("p") => )
+    );
     assert!(valid_not_left.is_valid_inference());
 
-    let invalid_not_left = LK::NotLeft(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![*pred!("p"), *pred!("p")],
-        succedent: vec![]
-    });
+    let invalid_not_left = LK::NotLeft(
+        Box::new(valid_axiom.clone()),
+        sequent!(*pred!("p"), *pred!("p") => )
+    );
     assert!(!invalid_not_left.is_valid_inference());
 
-    let valid_not_right = LK::NotRight(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![],
-        succedent: vec![*pred!("p"), *not!(pred!("p"))]
-    });
+    let valid_not_right = LK::NotRight(
+        Box::new(valid_axiom.clone()),
+        sequent!( => *pred!("p"), *not!(pred!("p")))
+    );
     assert!(valid_not_right.is_valid_inference());
 
-    let invalid_not_right = LK::NotRight(Box::new(valid_axiom.clone()), Sequent{
-        antecedent: vec![],
-        succedent: vec![*pred!("p"), *pred!("p")]
-    });
+    let invalid_not_right = LK::NotRight(
+        Box::new(valid_axiom.clone()),
+        sequent!( => *pred!("p"), *pred!("p"))
+    );
     assert!(!invalid_not_right.is_valid_inference());
 
     let valid_forall_left = LK::ForallLeft(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![*equal!(var!("x"), var!("x"))],
-            succedent: vec![]
-        })),
-        Sequent{
-            antecedent: vec![*forall!(var!("y"), equal!(var!("y"), var!("y")))],
-            succedent: vec![]
-        }
+        Box::new(LK::Axiom(sequent!(*equal!(var!("x"), var!("x")) => ))),
+        sequent!(*forall!(var!("y"), equal!(var!("y"), var!("y"))) =>),
     );
     assert!(valid_forall_left.is_valid_inference());
 
     let invalid_forall_left = LK::ForallLeft(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![*equal!(var!("x"), var!("x"))],
-            succedent: vec![]
-        })),
-        Sequent{
-            antecedent: vec![*exists!(var!("y"), equal!(var!("y"), var!("y")))],
-            succedent: vec![]
-        }
+        Box::new(LK::Axiom(sequent!(*equal!(var!("x"), var!("x")) => ))),
+        sequent!(*exists!(var!("y"), equal!(var!("y"), var!("y"))) => ),
     );
     assert!(!invalid_forall_left.is_valid_inference());
 
     let valid_forall_right = LK::ForallRight(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![],
-            succedent: vec![*equal!(var!("x"), var!("x"))],
-        })),
-        Sequent{
-            antecedent: vec![],
-            succedent: vec![*forall!(var!("y"), equal!(var!("y"), var!("y")))],
-        }
+        Box::new(LK::Axiom(sequent!( => *equal!(var!("x"), var!("x"))))),
+        sequent!( => *forall!(var!("y"), equal!(var!("y"), var!("y")))),
     );
     assert!(valid_forall_right.is_valid_inference());
 
     let invalid_forall_right = LK::ForallRight(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![],
-            succedent: vec![*equal!(var!("x"), var!("x"))],
-        })),
-        Sequent{
-            antecedent: vec![],
-            succedent: vec![*exists!(var!("y"), equal!(var!("y"), var!("y")))],
-        }
+        Box::new(LK::Axiom(sequent!( => *equal!(var!("x"), var!("x"))))),
+        sequent!( => *exists!(var!("y"), equal!(var!("y"), var!("y")))),
     );
     assert!(!invalid_forall_right.is_valid_inference());
 
     let valid_exists_left = LK::ExistsLeft(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![*equal!(var!("x"), var!("x"))],
-            succedent: vec![]
-        })),
-        Sequent{
-            antecedent: vec![*exists!(var!("y"), equal!(var!("y"), var!("y")))],
-            succedent: vec![]
-        }
+        Box::new(LK::Axiom(sequent!(*equal!(var!("x"), var!("x")) => ))),
+        sequent!(*exists!(var!("y"), equal!(var!("y"), var!("y"))) => ),
     );
     assert!(valid_exists_left.is_valid_inference());
 
     let invalid_exists_left = LK::ExistsLeft(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![*equal!(var!("x"), var!("x"))],
-            succedent: vec![]
-        })),
-        Sequent{
-            antecedent: vec![*forall!(var!("y"), equal!(var!("y"), var!("y")))],
-            succedent: vec![]
-        }
+        Box::new(LK::Axiom(sequent!(*equal!(var!("x"), var!("x")) => ))),
+        sequent!(*forall!(var!("y"), equal!(var!("y"), var!("y"))) => ),
     );
     assert!(!invalid_exists_left.is_valid_inference());
 
     let valid_exists_right = LK::ExistsRight(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![],
-            succedent: vec![*equal!(var!("x"), var!("x"))],
-        })),
-        Sequent{
-            antecedent: vec![],
-            succedent: vec![*exists!(var!("y"), equal!(var!("y"), var!("y")))],
-        }
+        Box::new(LK::Axiom(sequent!( => *equal!(var!("x"), var!("x"))))),
+        sequent!( => *exists!(var!("y"), equal!(var!("y"), var!("y")))),
     );
     assert!(valid_exists_right.is_valid_inference());
 
     let invalid_exists_right = LK::ExistsRight(
-        Box::new(LK::Axiom(Sequent{
-            antecedent: vec![],
-            succedent: vec![*equal!(var!("x"), var!("x"))],
-        })),
-        Sequent{
-            antecedent: vec![],
-            succedent: vec![*forall!(var!("y"), equal!(var!("y"), var!("y")))],
-        }
+        Box::new(LK::Axiom(sequent!( => *equal!(var!("x"), var!("x"))))),
+        sequent!( => *forall!(var!("y"), equal!(var!("y"), var!("y")))),
     );
     assert!(!invalid_exists_right.is_valid_inference());
 
     let valid_cut = LK::Cut(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("p")],
-                succedent: vec![]
-            })
+            LK::Axiom(sequent!( => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("p") => )),
         ]),
-        Sequent{
-            antecedent: vec![],
-            succedent: vec![]
-        }
+        sequent!( => ),
     );
     assert!(valid_cut.is_valid_inference());
 
     let invalid_cut = LK::Cut(
         Box::new([
-            LK::Axiom(Sequent{
-                antecedent: vec![],
-                succedent: vec![*pred!("p")]
-            }),
-            LK::Axiom(Sequent{
-                antecedent: vec![*pred!("q")],
-                succedent: vec![]
-            })
+            LK::Axiom(sequent!( => *pred!("p"))),
+            LK::Axiom(sequent!(*pred!("q") => )),
         ]),
-        Sequent{
-            antecedent: vec![],
-            succedent: vec![]
-        }
+        sequent!( => ),
     );
     assert!(!invalid_cut.is_valid_inference());
 }

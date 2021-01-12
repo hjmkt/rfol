@@ -6,6 +6,13 @@ pub struct Sequent {
     pub succedent: Vec<Formula>,
 }
 
+macro_rules! sequent{
+    ($($ant: expr),* => $($suc: expr),*) => { Sequent{
+        antecedent: vec![$($ant),*],
+        succedent: vec![$($suc),*]
+    }};
+}
+
 #[derive(Debug, Clone)]
 pub enum LK {
     Axiom(Sequent),
@@ -201,9 +208,9 @@ impl Proof for LK {
                 let sigma = &rpremise.last().succedent;
                 conclusion.antecedent[1..] == [gamma, pi].concat()
                     && conclusion.succedent == [delta, sigma].concat()
-                    && if let Formula::Implies(lhs, rhs) = &conclusion.antecedent[0]{
+                    && if let Formula::Implies(lhs, rhs) = &conclusion.antecedent[0] {
                         &**lhs == *fml1 && **rhs == *fml2
-                    } else{
+                    } else {
                         false
                     }
             }
@@ -330,8 +337,7 @@ impl Proof for LK {
             }
             LK::ExistsLeft(premise, conclusion) => {
                 premise.last().succedent == conclusion.succedent
-                    && premise.last().antecedent[1..]
-                        == conclusion.antecedent[1..]
+                    && premise.last().antecedent[1..] == conclusion.antecedent[1..]
                     && if let Formula::Exists(term, fml) = &conclusion.antecedent[0] {
                         let mut valid = false;
                         for var in premise.last().antecedent[0].get_free_vars() {
