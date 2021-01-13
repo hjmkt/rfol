@@ -6,6 +6,7 @@ pub mod parser;
 #[allow(unused_macros)]
 #[macro_use]
 pub mod proof;
+pub mod solver;
 pub mod tokenizer;
 
 #[test]

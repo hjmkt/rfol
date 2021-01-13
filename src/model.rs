@@ -1,6 +1,7 @@
 use crate::language::*;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 pub struct FiniteModel {
     pub domain_size: u32,
     pub var_assignment: HashMap<Term, u32>,
