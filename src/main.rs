@@ -7,8 +7,35 @@ mod parser;
 #[macro_use]
 mod proof;
 mod tokenizer;
+extern crate clap;
+use clap::{App, Arg, SubCommand};
 
 fn main() {
+    let app = App::new("rfol")
+        .version("0.0.0")
+        .author("kalgr <hoge@fuga.com>")
+        .about("RFOL CLI")
+        .subcommand(
+            SubCommand::with_name("echo")
+                .about("echo input formula")
+                .arg(
+                    Arg::with_name("input")
+                        .help("input formula in Polish notation")
+                        .short("i")
+                        .long("input")
+                        .takes_value(true)
+                        .required(true),
+                ),
+        );
+
+    let matches = app.get_matches();
+
+    if let Some(ref matches) = matches.subcommand_matches("echo") {
+        if let Some(fml) = matches.value_of("input") {
+            println!("{:?}", fml);
+        }
+    }
+
     use language::*;
     let mut tokenizer = tokenizer::Tokenizer::new();
     let tokens = tokenizer.tokenize("(Vx0 (Ex1 (^ (= (a x y) (b x y)) (v (~ (p y)) (q y)))))");
@@ -59,31 +86,31 @@ fn main() {
         println!("{:?}", truth_value);
 
         let valid_axiom = LK::Axiom(sequent!(pred!("p") => pred!("p")));
-        println!("{:?}", valid_axiom.is_valid_inference());
+        println!("{:?}", valid_axiom);
 
         let valid_weakening_left = LK::WeakeningLeft(
             Box::new(valid_axiom.clone()),
             sequent!(pred!("p"), pred!("p") => pred!("p")),
         );
-        println!("{:?}", valid_weakening_left.is_valid_inference());
+        println!("{:?}", valid_weakening_left);
 
         let valid_weakening_right = LK::WeakeningRight(
             Box::new(valid_axiom.clone()),
             sequent!(pred!("p") => pred!("p"), pred!("q")),
         );
-        println!("{:?}", valid_weakening_right.is_valid_inference());
+        println!("{:?}", valid_weakening_right);
 
         let valid_contraction_left = LK::ContractionLeft(
             Box::new(valid_weakening_left.clone()),
             valid_axiom.last().clone(),
         );
-        println!("{:?}", valid_contraction_left.is_valid_inference());
+        println!("{:?}", valid_contraction_left);
 
         let valid_contraction_right = LK::ContractionRight(
             Box::new(valid_weakening_right.clone()),
             valid_axiom.last().clone(),
         );
-        println!("{:?}", valid_contraction_right.is_valid_inference());
+        println!("{:?}", valid_contraction_right);
 
         let valid_exchange_left = LK::ExchangeLeft(
             Box::new(LK::Axiom(
@@ -91,7 +118,7 @@ fn main() {
             )),
             sequent!(pred!("q"), pred!("p") => pred!("p"), pred!("q")),
         );
-        println!("{:?}", valid_exchange_left.is_valid_inference());
+        println!("{:?}", valid_exchange_left);
 
         let valid_exchange_right = LK::ExchangeRight(
             Box::new(LK::Axiom(
@@ -99,19 +126,19 @@ fn main() {
             )),
             sequent!(pred!("p"), pred!("q") => pred!("q"), pred!("p")),
         );
-        println!("{:?}", valid_exchange_right.is_valid_inference());
+        println!("{:?}", valid_exchange_right);
 
         let valid_and_left1 = LK::AndLeft1(
             Box::new(valid_axiom.clone()),
             sequent!(and!(pred!("p"), pred!("q")) => pred!("p")),
         );
-        println!("{:?}", valid_and_left1.is_valid_inference());
+        println!("{:?}", valid_and_left1);
 
         let valid_and_left2 = LK::AndLeft2(
             Box::new(valid_axiom.clone()),
             sequent!(and!(pred!("q"), pred!("p")) => pred!("p")),
         );
-        println!("{:?}", valid_and_left2.is_valid_inference());
+        println!("{:?}", valid_and_left2);
 
         let valid_and_right = LK::AndRight(
             Box::new([
@@ -120,7 +147,7 @@ fn main() {
             ]),
             sequent!(pred!("p") => and!(pred!("p"), pred!("q"))),
         );
-        println!("{:?}", valid_and_right.is_valid_inference());
+        println!("{:?}", valid_and_right);
 
         let valid_or_left = LK::OrLeft(
             Box::new([
@@ -129,19 +156,19 @@ fn main() {
             ]),
             sequent!(or!(pred!("p"), pred!("q")) => pred!("p")),
         );
-        println!("{:?}", valid_or_left.is_valid_inference());
+        println!("{:?}", valid_or_left);
 
         let valid_or_right1 = LK::OrRight1(
             Box::new(valid_axiom.clone()),
             sequent!(pred!("p") => or!(pred!("p"), pred!("q"))),
         );
-        println!("{:?}", valid_or_right1.is_valid_inference());
+        println!("{:?}", valid_or_right1);
 
         let valid_or_right2 = LK::OrRight2(
             Box::new(valid_axiom.clone()),
             sequent!(pred!("p") => or!(pred!("q"), pred!("p"))),
         );
-        println!("{:?}", valid_or_right2.is_valid_inference());
+        println!("{:?}", valid_or_right2);
 
         let valid_implies_left = LK::ImpliesLeft(
             Box::new([
@@ -150,7 +177,7 @@ fn main() {
             ]),
             sequent!(implies!(pred!("p"), pred!("q")), pred!("p") => pred!("q")),
         );
-        println!("{:?}", valid_implies_left.is_valid_inference());
+        println!("{:?}", valid_implies_left);
 
         let valid_implies_right = LK::ImpliesRight(
             Box::new(LK::Axiom(
@@ -158,43 +185,43 @@ fn main() {
             )),
             sequent!(pred!("p") => pred!("q"), implies!(pred!("p"), pred!("q"))),
         );
-        println!("{:?}", valid_implies_right.is_valid_inference());
+        println!("{:?}", valid_implies_right);
 
         let valid_not_left = LK::NotLeft(
             Box::new(valid_axiom.clone()),
             sequent!(not!(pred!("p")), pred!("p") => ),
         );
-        println!("{:?}", valid_not_left.is_valid_inference());
+        println!("{:?}", valid_not_left);
 
         let valid_not_right = LK::NotRight(
             Box::new(valid_axiom.clone()),
             sequent!( => pred!("p"), not!(pred!("p"))),
         );
-        println!("{:?}", valid_not_right.is_valid_inference());
+        println!("{:?}", valid_not_right);
 
         let valid_forall_left = LK::ForallLeft(
             Box::new(LK::Axiom(sequent!(equal!(var!("x"), var!("x")) => ))),
             sequent!(forall!(var!("y"), equal!(var!("y"), var!("y"))) => ),
         );
-        println!("{:?}", valid_forall_left.is_valid_inference());
+        println!("{:?}", valid_forall_left);
 
         let valid_forall_right = LK::ForallRight(
             Box::new(LK::Axiom(sequent!( => equal!(var!("x"), var!("x"))))),
             sequent!( => forall!(var!("y"), equal!(var!("y"), var!("y")))),
         );
-        println!("{:?}", valid_forall_right.is_valid_inference());
+        println!("{:?}", valid_forall_right);
 
         let valid_exists_left = LK::ExistsLeft(
             Box::new(LK::Axiom(sequent!(equal!(var!("x"), var!("x")) => ))),
             sequent!(exists!(var!("y"), equal!(var!("y"), var!("y"))) => ),
         );
-        println!("{:?}", valid_exists_left.is_valid_inference());
+        println!("{:?}", valid_exists_left);
 
         let valid_exists_right = LK::ExistsRight(
             Box::new(LK::Axiom(sequent!( => equal!(var!("x"), var!("x"))))),
             sequent!( => exists!(var!("y"), equal!(var!("y"), var!("y")))),
         );
-        println!("{:?}", valid_exists_right.is_valid_inference());
+        println!("{:?}", valid_exists_right);
 
         let valid_cut = LK::Cut(
             Box::new([
@@ -203,7 +230,7 @@ fn main() {
             ]),
             sequent!( => ),
         );
-        println!("{:?}", valid_cut.is_valid_inference());
+        println!("{:?}", valid_cut);
     } else {
         println!("{:?}", parser);
     }
