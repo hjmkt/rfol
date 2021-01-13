@@ -594,3 +594,31 @@ fn lk_inference_rule_works() {
     );
     assert!(!invalid_cut.is_valid_inference());
 }
+
+#[test]
+fn refute_on_finite_models_works() {
+    use language::*;
+    use solver::*;
+
+    let fml = forall!(
+        var!("x0"),
+        exists!(
+            var!("x1"),
+            and!(
+                equal!(
+                    func!("a", var!("x"), var!("y")),
+                    func!("b", var!("x"), var!("y"))
+                ),
+                or!(
+                    not!(pred!("p", var!("y"))),
+                    implies!(pred!("q"), pred!("r"))
+                )
+            )
+        )
+    );
+
+    if let Some(_) = refute_on_finite_models(fml, 2) {
+    } else {
+        assert!(false);
+    }
+}

@@ -6,6 +6,7 @@ mod parser;
 #[allow(unused_macros)]
 #[macro_use]
 mod proof;
+mod solver;
 mod tokenizer;
 extern crate clap;
 use clap::{App, Arg, SubCommand};
@@ -231,6 +232,29 @@ fn main() {
             sequent!( => ),
         );
         println!("{:?}", valid_cut);
+
+        use solver::*;
+
+        let fml = forall!(
+            var!("x0"),
+            exists!(
+                var!("x1"),
+                and!(
+                    equal!(
+                        func!("a", var!("x"), var!("y")),
+                        func!("b", var!("x"), var!("y"))
+                    ),
+                    or!(
+                        not!(pred!("p", var!("y"))),
+                        implies!(pred!("q"), pred!("r"))
+                    )
+                )
+            )
+        );
+
+        if let Some(model) = refute_on_finite_models(fml, 2) {
+            println!("{:?}", model);
+        }
     } else {
         println!("{:?}", parser);
     }

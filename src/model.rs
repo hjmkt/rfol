@@ -1,7 +1,7 @@
 use crate::language::*;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FiniteModel {
     pub domain_size: u32,
     pub var_assignment: HashMap<Term, u32>,
@@ -82,6 +82,7 @@ impl Model for FiniteModel {
             Formula::Not(bfml) => !self.evaluate_formula(bfml),
             Formula::And(lhs, rhs) => self.evaluate_formula(lhs) && self.evaluate_formula(rhs),
             Formula::Or(lhs, rhs) => self.evaluate_formula(lhs) || self.evaluate_formula(rhs),
+            Formula::Implies(lhs, rhs) => !self.evaluate_formula(lhs) || self.evaluate_formula(rhs),
             Formula::Forall(Term::Var(name), bfml) => (0..self.domain_size).any(|v| {
                 self.var_assignment.insert(Term::Var(name.into()), v);
                 self.evaluate_formula(bfml)

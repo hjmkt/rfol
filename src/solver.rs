@@ -8,7 +8,7 @@ fn _enumerate_vecs(vectors: Vec<Vec<u32>>, size: u32, rem_size: u32) -> Vec<Vec<
     } else {
         let mut new_vectors = vec![];
         for vector in vectors {
-            for n in 0..size - 1 {
+            for n in 0..size {
                 let mut tmp = vector.clone();
                 tmp.push(n);
                 new_vectors.push(tmp);
@@ -28,7 +28,7 @@ fn _enumerate_assign_func(
     } else {
         let mut new_assigns = vec![];
         for assign in assigns {
-            for n in 0..domain_size - 1 {
+            for n in 0..domain_size {
                 let mut tmp = assign.clone();
                 tmp.insert(vector[0].clone(), n);
                 new_assigns.push(tmp);
@@ -39,9 +39,17 @@ fn _enumerate_assign_func(
 }
 
 fn enumerate_assign_func(arity: u32, domain_size: u32) -> Vec<HashMap<Vec<u32>, u32>> {
-    let mut vectors = vec![];
-    vectors = _enumerate_vecs(vectors, domain_size, arity);
-    _enumerate_assign_func(vec![], &vectors[..], arity)
+    if arity == 0 {
+        let mut assigns = vec![];
+        for n in 0..domain_size {
+            assigns.push(assign![[] => n]);
+        }
+        assigns
+    } else {
+        let mut vectors = vec![vec![]];
+        vectors = _enumerate_vecs(vectors, domain_size, arity);
+        _enumerate_assign_func(vec![assign![]], &vectors[..], arity)
+    }
 }
 
 fn _enumerate_assign_pred(
@@ -65,9 +73,16 @@ fn _enumerate_assign_pred(
 }
 
 fn enumerate_assign_pred(arity: u32, domain_size: u32) -> Vec<HashMap<Vec<u32>, bool>> {
-    let mut vectors = vec![];
-    vectors = _enumerate_vecs(vectors, domain_size, arity);
-    _enumerate_assign_pred(vec![], &vectors[..], arity)
+    if arity == 0 {
+        let mut assigns = vec![];
+        assigns.push(assign![[] => true]);
+        assigns.push(assign![[] => false]);
+        assigns
+    } else {
+        let mut vectors = vec![vec![]];
+        vectors = _enumerate_vecs(vectors, domain_size, arity);
+        _enumerate_assign_pred(vec![assign![]], &vectors[..], arity)
+    }
 }
 
 fn _refute_on_finite_models(
@@ -79,7 +94,7 @@ fn _refute_on_finite_models(
     model: &mut FiniteModel,
 ) -> Option<FiniteModel> {
     if !free_vars.is_empty() {
-        for n in 0..domain_size - 1 {
+        for n in 0..domain_size {
             model.assign_var(assign![free_vars[0].clone() => n]);
             if let m @ Some(_) =
                 _refute_on_finite_models(fml, domain_size, &free_vars[1..], funcs, preds, model)
@@ -100,7 +115,7 @@ fn _refute_on_finite_models(
         None
     } else if !preds.is_empty() {
         for assign in enumerate_assign_pred(preds[0].arity, domain_size) {
-            model.assign_pred(funcs[0].clone(), assign);
+            model.assign_pred(preds[0].clone(), assign);
             if let t @ Some(_) =
                 _refute_on_finite_models(fml, domain_size, free_vars, funcs, &preds[1..], model)
             {
@@ -129,7 +144,7 @@ pub fn refute_on_finite_models(fml: Formula, max_domain_size: u32) -> Option<Fin
         .into_iter()
         .collect::<Vec<NonLogicalSymbol>>();
 
-    for domain_size in 0..max_domain_size {
+    for domain_size in 1..max_domain_size + 1 {
         let mut model = FiniteModel::new(domain_size);
         if let m @ Some(_) = _refute_on_finite_models(
             &fml,
