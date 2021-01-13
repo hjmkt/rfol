@@ -6,6 +6,24 @@ pub struct Sequent {
     pub succedent: Vec<Formula>,
 }
 
+impl Sequent {
+    pub fn ant_first(&self) -> &Formula {
+        &self.antecedent[0]
+    }
+
+    pub fn suc_last(&self) -> &Formula {
+        &self.succedent.last().unwrap()
+    }
+
+    pub fn ant_but_first(&self) -> &[Formula] {
+        &self.antecedent[1..]
+    }
+
+    pub fn suc_but_last(&self) -> &[Formula] {
+        self.succedent.split_last().unwrap().1
+    }
+}
+
 macro_rules! sequent{
     ($($ant: expr),* => $($suc: expr),*) => { Sequent{
         antecedent: vec![$($ant),*],
@@ -78,23 +96,22 @@ impl Proof for LK {
         match self {
             LK::Axiom(conclusion) => conclusion.antecedent == conclusion.succedent,
             LK::WeakeningLeft(premise, conclusion) => {
-                premise.last().antecedent == conclusion.antecedent[1..]
+                premise.last().antecedent == conclusion.ant_but_first()
                     && premise.last().succedent == conclusion.succedent
             }
             LK::WeakeningRight(premise, conclusion) => {
                 premise.last().antecedent == conclusion.antecedent
-                    && premise.last().succedent == conclusion.succedent.split_last().unwrap().1
+                    && premise.last().succedent == conclusion.suc_but_last()
             }
             LK::ContractionLeft(premise, conclusion) => {
-                premise.last().antecedent[0] == premise.last().antecedent[1]
-                    && premise.last().antecedent[1..] == conclusion.antecedent
+                premise.last().ant_first() == &premise.last().antecedent[1]
+                    && premise.last().ant_but_first() == &conclusion.antecedent[..]
                     && premise.last().succedent == conclusion.succedent
             }
             LK::ContractionRight(premise, conclusion) => {
                 premise.last().antecedent == conclusion.antecedent
-                    && premise.last().succedent[premise.last().succedent.len() - 2]
-                        == premise.last().succedent[conclusion.succedent.len() - 1]
-                    && premise.last().succedent.split_last().unwrap().1 == conclusion.succedent
+                    && premise.last().suc_but_last().last().unwrap() == premise.last().suc_last()
+                    && premise.last().suc_but_last() == conclusion.succedent
             }
             LK::ExchangeLeft(premise, conclusion) => {
                 if premise.last().succedent == conclusion.succedent {
@@ -133,19 +150,19 @@ impl Proof for LK {
                 }
             }
             LK::AndLeft1(premise, conclusion) => {
-                premise.last().antecedent[1..] == conclusion.antecedent[1..]
+                premise.last().ant_but_first() == conclusion.ant_but_first()
                     && premise.last().succedent == conclusion.succedent
-                    && if let Formula::And(fml, _) = &conclusion.antecedent[0] {
-                        **fml == premise.last().antecedent[0]
+                    && if let Formula::And(fml, _) = &conclusion.ant_first() {
+                        &**fml == premise.last().ant_first()
                     } else {
                         false
                     }
             }
             LK::AndLeft2(premise, conclusion) => {
-                premise.last().antecedent[1..] == conclusion.antecedent[1..]
+                premise.last().ant_but_first() == conclusion.ant_but_first()
                     && premise.last().succedent == conclusion.succedent
-                    && if let Formula::And(_, fml) = &conclusion.antecedent[0] {
-                        **fml == premise.last().antecedent[0]
+                    && if let Formula::And(_, fml) = &conclusion.ant_first() {
+                        &**fml == premise.last().ant_first()
                     } else {
                         false
                     }
@@ -154,13 +171,10 @@ impl Proof for LK {
                 let [lpremise, rpremise] = &**premises;
                 lpremise.last().antecedent == conclusion.antecedent
                     && rpremise.last().antecedent == conclusion.antecedent
-                    && lpremise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && rpremise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::And(lhs, rhs) = conclusion.succedent.last().unwrap() {
-                        lpremise.last().succedent.last().unwrap() == &**lhs
-                            && rpremise.last().succedent.last().unwrap() == &**rhs
+                    && lpremise.last().suc_but_last() == conclusion.suc_but_last()
+                    && rpremise.last().suc_but_last() == conclusion.suc_but_last()
+                    && if let Formula::And(lhs, rhs) = conclusion.suc_last() {
+                        lpremise.last().suc_last() == &**lhs && rpremise.last().suc_last() == &**rhs
                     } else {
                         false
                     }
@@ -169,8 +183,8 @@ impl Proof for LK {
                 let [lpremise, rpremise] = &**premises;
                 lpremise.last().succedent == conclusion.succedent
                     && rpremise.last().succedent == conclusion.succedent
-                    && lpremise.last().antecedent[1..] == conclusion.antecedent[1..]
-                    && rpremise.last().antecedent[1..] == conclusion.antecedent[1..]
+                    && lpremise.last().ant_but_first() == conclusion.ant_but_first()
+                    && rpremise.last().ant_but_first() == conclusion.ant_but_first()
                     && if let Formula::Or(lhs, rhs) = &conclusion.antecedent[0] {
                         lpremise.last().antecedent[0] == **lhs
                             && rpremise.last().antecedent[0] == **rhs
@@ -180,20 +194,18 @@ impl Proof for LK {
             }
             LK::OrRight1(premise, conclusion) => {
                 premise.last().antecedent == conclusion.antecedent
-                    && premise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Or(fml, _) = conclusion.succedent.last().unwrap() {
-                        &**fml == premise.last().succedent.last().unwrap()
+                    && premise.last().suc_but_last() == conclusion.suc_but_last()
+                    && if let Formula::Or(fml, _) = conclusion.suc_last() {
+                        &**fml == premise.last().suc_last()
                     } else {
                         false
                     }
             }
             LK::OrRight2(premise, conclusion) => {
                 premise.last().antecedent == conclusion.antecedent
-                    && premise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Or(_, fml) = conclusion.succedent.last().unwrap() {
-                        &**fml == premise.last().succedent.last().unwrap()
+                    && premise.last().suc_but_last() == conclusion.suc_but_last()
+                    && if let Formula::Or(_, fml) = conclusion.suc_last() {
+                        &**fml == premise.last().suc_last()
                     } else {
                         false
                     }
@@ -201,58 +213,56 @@ impl Proof for LK {
             LK::ImpliesLeft(premises, conclusion) => {
                 let [lpremise, rpremise] = &**premises;
                 let gamma = &lpremise.last().antecedent;
-                let delta = lpremise.last().succedent.split_last().unwrap().1;
-                let fml1 = &lpremise.last().succedent.last().unwrap();
-                let fml2 = &rpremise.last().antecedent[0];
-                let pi = &rpremise.last().antecedent[1..];
+                let delta = lpremise.last().suc_but_last();
+                let fml1 = &lpremise.last().suc_last();
+                let fml2 = &rpremise.last().ant_first();
+                let pi = rpremise.last().ant_but_first();
                 let sigma = &rpremise.last().succedent;
-                conclusion.antecedent[1..] == [gamma, pi].concat()
+                conclusion.ant_but_first() == &[gamma, pi].concat()[..]
                     && conclusion.succedent == [delta, sigma].concat()
-                    && if let Formula::Implies(lhs, rhs) = &conclusion.antecedent[0] {
-                        &**lhs == *fml1 && **rhs == *fml2
+                    && if let Formula::Implies(lhs, rhs) = &conclusion.ant_first() {
+                        &**lhs == *fml1 && **rhs == **fml2
                     } else {
                         false
                     }
             }
             LK::ImpliesRight(premise, conclusion) => {
-                premise.last().antecedent[1..] == conclusion.antecedent
-                    && premise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Implies(lhs, rhs) = conclusion.succedent.last().unwrap() {
-                        **lhs == premise.last().antecedent[0]
-                            && &**rhs == premise.last().succedent.last().unwrap()
+                premise.last().ant_but_first() == &conclusion.antecedent[..]
+                    && premise.last().suc_but_last() == conclusion.suc_but_last()
+                    && if let Formula::Implies(lhs, rhs) = conclusion.suc_last() {
+                        &**lhs == premise.last().ant_first() && &**rhs == premise.last().suc_last()
                     } else {
                         false
                     }
             }
             LK::NotLeft(premise, conclusion) => {
-                premise.last().antecedent == conclusion.antecedent[1..]
-                    && premise.last().succedent.split_last().unwrap().1 == conclusion.succedent
-                    && if let Formula::Not(fml) = &conclusion.antecedent[0] {
-                        &**fml == premise.last().succedent.last().unwrap()
+                &premise.last().antecedent[..] == conclusion.ant_but_first()
+                    && premise.last().suc_but_last() == conclusion.succedent
+                    && if let Formula::Not(fml) = &conclusion.ant_first() {
+                        &**fml == premise.last().suc_last()
                     } else {
                         false
                     }
             }
             LK::NotRight(premise, conclusion) => {
-                premise.last().antecedent[1..] == conclusion.antecedent
-                    && premise.last().succedent == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Not(fml) = conclusion.succedent.last().unwrap() {
-                        **fml == premise.last().antecedent[0]
+                premise.last().ant_but_first() == &conclusion.antecedent[..]
+                    && premise.last().succedent == conclusion.suc_but_last()
+                    && if let Formula::Not(fml) = conclusion.suc_last() {
+                        &**fml == premise.last().ant_first()
                     } else {
                         false
                     }
             }
             LK::ForallLeft(premise, conclusion) => {
                 premise.last().succedent == conclusion.succedent
-                    && premise.last().antecedent[1..] == conclusion.antecedent[1..]
-                    && if let Formula::Forall(var, fml) = &conclusion.antecedent[0] {
+                    && premise.last().ant_but_first() == conclusion.ant_but_first()
+                    && if let Formula::Forall(var, fml) = &conclusion.ant_first() {
                         if !fml.get_bound_vars().contains(var) {
                             let mut valid = false;
-                            for term in premise.last().antecedent[0].get_subterms() {
+                            for term in premise.last().ant_first().get_subterms() {
                                 if fml.is_substitutible(var.clone(), term.clone()) {
                                     let tfml = fml.substitute(var.clone(), term);
-                                    if tfml == premise.last().antecedent[0] {
+                                    if &tfml == premise.last().ant_first() {
                                         valid = true;
                                         break;
                                     }
@@ -270,14 +280,13 @@ impl Proof for LK {
             }
             LK::ForallRight(premise, conclusion) => {
                 premise.last().antecedent == conclusion.antecedent
-                    && premise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Forall(term, fml) = &conclusion.succedent.last().unwrap() {
+                    && premise.last().suc_but_last() == conclusion.suc_but_last()
+                    && if let Formula::Forall(term, fml) = &conclusion.suc_last() {
                         let mut valid = false;
-                        for var in premise.last().succedent.last().unwrap().get_free_vars() {
+                        for var in premise.last().suc_last().get_free_vars() {
                             if fml.is_substitutible(term.clone(), var.clone()) {
                                 let tfml = fml.substitute(term.clone(), var.clone());
-                                if &tfml == premise.last().succedent.last().unwrap() {
+                                if &tfml == premise.last().suc_last() {
                                     if !premise
                                         .last()
                                         .antecedent
@@ -287,10 +296,7 @@ impl Proof for LK {
                                         .contains(&var.clone())
                                         && !premise
                                             .last()
-                                            .succedent
-                                            .split_last()
-                                            .unwrap()
-                                            .1
+                                            .suc_but_last()
                                             .iter()
                                             .flat_map(|f| f.get_free_vars())
                                             .collect::<Vec<Term>>()
@@ -309,17 +315,14 @@ impl Proof for LK {
             }
             LK::ExistsRight(premise, conclusion) => {
                 premise.last().antecedent == conclusion.antecedent
-                    && premise.last().succedent.split_last().unwrap().1
-                        == conclusion.succedent.split_last().unwrap().1
-                    && if let Formula::Exists(Term::Var(s), fml) =
-                        &conclusion.succedent.last().unwrap()
-                    {
-                        if !fml.get_bound_vars().contains(&Term::Var(s.into())) {
+                    && premise.last().suc_but_last() == conclusion.suc_but_last()
+                    && if let Formula::Exists(Term::Var(s), fml) = &conclusion.suc_last() {
+                        if !fml.get_bound_vars().contains(&var!(s)) {
                             let mut valid = false;
-                            for term in premise.last().succedent.last().unwrap().get_subterms() {
-                                if fml.is_substitutible(Term::Var(s.into()), term.clone()) {
-                                    let tfml = fml.substitute(Term::Var(s.into()), term);
-                                    if &tfml == premise.last().succedent.last().unwrap() {
+                            for term in premise.last().suc_last().get_subterms() {
+                                if fml.is_substitutible(var!(s), term.clone()) {
+                                    let tfml = fml.substitute(var!(s), term);
+                                    if &tfml == premise.last().suc_last() {
                                         valid = true;
                                         break;
                                     }
@@ -337,13 +340,13 @@ impl Proof for LK {
             }
             LK::ExistsLeft(premise, conclusion) => {
                 premise.last().succedent == conclusion.succedent
-                    && premise.last().antecedent[1..] == conclusion.antecedent[1..]
-                    && if let Formula::Exists(term, fml) = &conclusion.antecedent[0] {
+                    && premise.last().ant_but_first() == conclusion.ant_but_first()
+                    && if let Formula::Exists(term, fml) = &conclusion.ant_first() {
                         let mut valid = false;
-                        for var in premise.last().antecedent[0].get_free_vars() {
+                        for var in premise.last().ant_first().get_free_vars() {
                             if fml.is_substitutible(term.clone(), var.clone()) {
                                 let tfml = fml.substitute(term.clone(), var.clone());
-                                if tfml == premise.last().antecedent[0] {
+                                if &tfml == premise.last().ant_first() {
                                     if !premise
                                         .last()
                                         .succedent
@@ -351,7 +354,9 @@ impl Proof for LK {
                                         .flat_map(|f| f.get_free_vars())
                                         .collect::<Vec<Term>>()
                                         .contains(&var.clone())
-                                        && !premise.last().antecedent[1..]
+                                        && !premise
+                                            .last()
+                                            .ant_but_first()
                                             .iter()
                                             .flat_map(|f| f.get_free_vars())
                                             .collect::<Vec<Term>>()
@@ -370,13 +375,13 @@ impl Proof for LK {
             }
             LK::Cut(premises, conclusion) => {
                 let [lpremise, rpremise] = &**premises;
-                if lpremise.last().succedent.last().unwrap() == &rpremise.last().antecedent[0] {
+                if lpremise.last().suc_last() == rpremise.last().ant_first() {
                     let gamma = &lpremise.last().antecedent;
-                    let delta = lpremise.last().succedent.split_last().unwrap().1;
-                    let pi = &rpremise.last().antecedent[1..];
-                    let sigma = &rpremise.last().succedent;
+                    let delta = lpremise.last().suc_but_last();
+                    let pi = &rpremise.last().ant_but_first();
+                    let sigma = &rpremise.last().succedent[..];
                     conclusion.antecedent == [gamma, delta].concat()
-                        && conclusion.succedent == [pi, &sigma].concat()
+                        && conclusion.succedent == [pi, sigma].concat()
                 } else {
                     false
                 }

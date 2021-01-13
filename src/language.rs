@@ -36,6 +36,15 @@ macro_rules! hashmap {
     }};
 }
 
+macro_rules! assign {
+    () => { std::collections::HashMap::new() };
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key.into(), $val); )*
+         map
+    }};
+}
+
 macro_rules! var {
     ($name: expr) => {
         Term::Var($name.into())
@@ -60,42 +69,42 @@ pub enum Formula {
 }
 
 macro_rules! pred{
-    ($name: expr) => { Box::new(Formula::Pred($name.into(), vec![])) };
-    ($name: expr, $($args: expr),*) => { Box::new(Formula::Pred($name.into(), vec![$( $args ),*])) };
+    ($name: expr) => { Formula::Pred($name.into(), vec![]) };
+    ($name: expr, $($args: expr),*) => { Formula::Pred($name.into(), vec![$( $args ),*]) };
 }
 macro_rules! equal {
     ($lhs: expr, $rhs: expr) => {
-        Box::new(Formula::Equal($lhs, $rhs))
+        Formula::Equal($lhs, $rhs)
     };
 }
 macro_rules! not {
     ($fml: expr) => {
-        Box::new(Formula::Not($fml))
+        Formula::Not(Box::new($fml))
     };
 }
 macro_rules! and {
     ($lhs: expr, $rhs: expr) => {
-        Box::new(Formula::And($lhs, $rhs))
+        Formula::And(Box::new($lhs), Box::new($rhs))
     };
 }
 macro_rules! or {
     ($lhs: expr, $rhs: expr) => {
-        Box::new(Formula::Or($lhs, $rhs))
+        Formula::Or(Box::new($lhs), Box::new($rhs))
     };
 }
 macro_rules! implies {
     ($lhs: expr, $rhs: expr) => {
-        Box::new(Formula::Implies($lhs, $rhs))
+        Formula::Implies(Box::new($lhs), Box::new($rhs))
     };
 }
 macro_rules! forall {
     ($var: expr, $fml: expr) => {
-        Box::new(Formula::Forall($var, $fml))
+        Formula::Forall($var, Box::new($fml))
     };
 }
 macro_rules! exists {
     ($var: expr, $fml: expr) => {
-        Box::new(Formula::Exists($var, $fml))
+        Formula::Exists($var, Box::new($fml))
     };
 }
 

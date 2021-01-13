@@ -17,6 +17,26 @@ impl FiniteModel {
             pred_assignment: HashMap::new(),
         }
     }
+
+    pub fn assign_var(&mut self, assign: HashMap<Term, u32>) {
+        self.var_assignment.extend(assign);
+    }
+
+    pub fn assign_func(&mut self, s: NonLogicalSymbol, assign: HashMap<Vec<u32>, u32>) {
+        if !self.func_assignment.contains_key(&s) {
+            self.func_assignment.insert(s.clone(), hashmap![]);
+        }
+        let tmp = self.func_assignment.get_mut(&s).unwrap();
+        tmp.extend(assign);
+    }
+
+    pub fn assign_pred(&mut self, s: NonLogicalSymbol, assign: HashMap<Vec<u32>, bool>) {
+        if !self.pred_assignment.contains_key(&s) {
+            self.pred_assignment.insert(s.clone(), hashmap![]);
+        }
+        let tmp = self.pred_assignment.get_mut(&s).unwrap();
+        tmp.extend(assign);
+    }
 }
 
 pub trait Model {
