@@ -83,13 +83,13 @@ impl Model for FiniteModel {
             Formula::And(lhs, rhs) => self.evaluate_formula(lhs) && self.evaluate_formula(rhs),
             Formula::Or(lhs, rhs) => self.evaluate_formula(lhs) || self.evaluate_formula(rhs),
             Formula::Implies(lhs, rhs) => !self.evaluate_formula(lhs) || self.evaluate_formula(rhs),
-            Formula::Forall(Term::Var(name), bfml) => (0..self.domain_size).any(|v| {
+            Formula::Forall(Term::Var(name), bfml) => (0..self.domain_size).all(|v| {
                 self.var_assignment.insert(Term::Var(name.into()), v);
                 self.evaluate_formula(bfml)
             }),
-            Formula::Exists(Term::Var(name), bfml) => !(0..self.domain_size).any(|v| {
+            Formula::Exists(Term::Var(name), bfml) => (0..self.domain_size).any(|v| {
                 self.var_assignment.insert(Term::Var(name.into()), v);
-                !self.evaluate_formula(bfml)
+                self.evaluate_formula(bfml)
             }),
             _ => {
                 assert!(false);

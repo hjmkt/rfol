@@ -1,3 +1,6 @@
+#[macro_use]
+#[allow(unused_macros)]
+extern crate assert_matches;
 #[allow(unused_macros)]
 #[macro_use]
 pub mod language;
@@ -597,28 +600,36 @@ fn lk_inference_rule_works() {
 
 #[test]
 fn refute_on_finite_models_works() {
-    use language::*;
+    use parser::*;
     use solver::*;
+    use tokenizer::*;
 
-    let fml = forall!(
-        var!("x0"),
-        exists!(
-            var!("x1"),
-            and!(
-                equal!(
-                    func!("a", var!("x"), var!("y")),
-                    func!("b", var!("x"), var!("y"))
-                ),
-                or!(
-                    not!(pred!("p", var!("y"))),
-                    implies!(pred!("q"), pred!("r"))
-                )
-            )
-        )
-    );
+    let str_to_fml = |s: &'static str| {
+        let mut tokenizer = Tokenizer::new();
+        let mut parser = Parser::new();
+        let tokens = tokenizer.tokenize(s);
+        let fml = parser.parse(&tokens).unwrap();
+        fml
+    };
 
-    if let Some(_) = refute_on_finite_models(fml, 2) {
-    } else {
-        assert!(false);
-    }
+    let fml = str_to_fml("(Vx (= x x))");
+    assert_matches!(refute_on_finite_models(fml, 4), None);
+
+    let fml = str_to_fml("(Vx (Vy (= x y)))");
+    assert_matches!(refute_on_finite_models(fml, 2), Some(_));
+
+    let fml = str_to_fml("(v (> p q) (> q p))");
+    assert_matches!(refute_on_finite_models(fml, 4), None);
+
+    let fml = str_to_fml("(> (> (> p q) p) p)");
+    assert_matches!(refute_on_finite_models(fml, 4), None);
+
+    let fml = str_to_fml("(Vx (~ (= x x)))");
+    assert_matches!(refute_on_finite_models(fml, 2), Some(_));
+
+    let fml = str_to_fml("(Ex (~ (= x x)))");
+    assert_matches!(refute_on_finite_models(fml, 2), Some(_));
+
+    let fml = str_to_fml("(Vx0 (Vx1 (^ (= (a x y) (b x y)) (v (p y) (> q r)))))");
+    assert_matches!(refute_on_finite_models(fml, 2), Some(_));
 }

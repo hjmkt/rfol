@@ -1,5 +1,7 @@
 use crate::language::*;
 use crate::model::*;
+use crate::proof::*;
+use Formula::*;
 use std::collections::HashMap;
 
 fn _enumerate_vecs(vectors: Vec<Vec<u32>>, size: u32, rem_size: u32) -> Vec<Vec<u32>> {
@@ -144,9 +146,9 @@ pub fn refute_on_finite_models(fml: Formula, max_domain_size: u32) -> Option<Fin
         .into_iter()
         .collect::<Vec<NonLogicalSymbol>>();
 
-    for domain_size in 1..max_domain_size + 1 {
+    for domain_size in 0..max_domain_size + 1 {
         let mut model = FiniteModel::new(domain_size);
-        if let m @ Some(_) = _refute_on_finite_models(
+        if let Some(m) = _refute_on_finite_models(
             &fml,
             domain_size,
             &free_vars[..],
@@ -154,8 +156,88 @@ pub fn refute_on_finite_models(fml: Formula, max_domain_size: u32) -> Option<Fin
             &preds[..],
             &mut model,
         ) {
-            return m;
+            let mut model = m.clone();
+            model.var_assignment.retain(|k, _| free_vars.contains(&k));
+            return Some(model);
         }
     }
     None
+}
+
+fn _prove_with_lk(sequent: &Sequent, max_depth: u32, checked_sequents: &mut HashMap<Sequent, Option<LK>>) -> Option<LK>{
+    if max_depth == 0{
+        checked_sequents.insert(sequent.clone(), None);
+        None
+    } else if checked_sequents.contains_key(sequent){
+        checked_sequents[sequent].clone()
+    } else{
+        if sequent.antecedent == sequent.succedent{
+            let prf = Some(LK::Axiom(sequent.clone()));
+            checked_sequents.insert(sequent.clone(), prf.clone());
+            return prf;
+        }
+        if sequent.antecedent.len() > 0{
+            match sequent.ant_first() {
+                Not(bfml) => {
+                    let mut parent_suc = sequent.succedent.clone();
+                    let last = parent_suc.len() - 1;
+                    parent_suc[last] = *bfml.clone();
+                    let parent = Sequent{antecedent: sequent.antecedent.clone(), succedent: parent_suc};
+                    if let Some(subprf) = _prove_with_lk(&parent, max_depth-1, checked_sequents){
+                        let prf = LK::NotLeft(
+                            Box::new(subprf),
+                            sequent.clone()
+                        );
+                        return Some(prf);
+                    }
+                }
+                And(lhs, rhs) => {
+                    let mut parent_ant = sequent.antecedent.clone();
+                    parent_ant[0] = *lhs.clone();
+                    let parent = Sequent{antecedent: parent_ant.clone(), succedent: sequent.succedent.clone()};
+                    if let Some(subprf) = _prove_with_lk(&parent, max_depth-1, checked_sequents){
+                        let prf = LK::AndLeft1(Box::new(subprf), sequent.clone());
+                        return Some(prf);
+                    }
+                    parent_ant[0] = *rhs.clone();
+                    let parent = Sequent{antecedent: parent_ant, succedent: sequent.succedent.clone()};
+                    if let Some(subprf) = _prove_with_lk(&parent, max_depth-1, checked_sequents){
+                        let prf = LK::AndLeft2(Box::new(subprf), sequent.clone());
+                        return Some(prf);
+                    }
+                }
+                Or(lhs, rhs) => {
+                    let mut left_sequent = sequent.clone();
+                    left_sequent.antecedent[0] = *lhs.clone();
+                    let mut right_sequent = sequent.clone();
+                    right_sequent.antecedent[0] = *rhs.clone();
+                    if let (Some(lprf), Some(rprf)) = (_prove_with_lk(&left_sequent, max_depth-1, checked_sequents), _prove_with_lk(&right_sequent, max_depth-1, checked_sequents)){
+                        let prf = LK::OrLeft(Box::new([lprf, rprf]), sequent.clone());
+                        return Some(prf);
+                    }
+                }
+                //Implies(lhs, rhs) => {
+                    //let mut left_sequent = sequent.clone();
+                    //left_sequent.antecedent[0] = *lhs.clone();
+                    //let mut right_sequent = sequent.clone();
+                    //right_sequent.antecedent[0] = *rhs.clone();
+                    //if let (Some(lprf), Some(rprf)) = (_prove_with_lk(&left_sequent, max_depth-1, checked_sequents), _prove_with_lk(&right_sequent, max_depth-1, checked_sequents)){
+                        //let prf = LK::OrLeft(Box::new([lprf, rprf]), sequent.clone());
+                        //return Some(prf);
+                    //}
+                //}
+                _ => {}
+            }
+        }
+        if sequent.succedent.len() > 0{
+
+        }
+        None
+    }
+}
+
+pub fn prove_with_lk(fml: Formula, max_depth: u32) -> Option<LK>{
+    let sequent = sequent!( => fml);
+    let mut checked_sequents = hashmap![];
+    _prove_with_lk(&sequent, max_depth, &mut checked_sequents)
 }

@@ -1,6 +1,6 @@
 use crate::language::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Sequent {
     pub antecedent: Vec<Formula>,
     pub succedent: Vec<Formula>,
