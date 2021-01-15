@@ -146,7 +146,7 @@ pub fn refute_on_finite_models(fml: Formula, max_domain_size: u32) -> Option<Fin
         .into_iter()
         .collect::<Vec<NonLogicalSymbol>>();
 
-    for domain_size in 0..max_domain_size + 1 {
+    for domain_size in 1..max_domain_size + 1 {
         let mut model = FiniteModel::new(domain_size);
         if let Some(m) = _refute_on_finite_models(
             &fml,
