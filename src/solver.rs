@@ -188,8 +188,10 @@ fn _prove_with_lk(sequent: &Sequent, max_depth: u32, checked_sequents: &mut Hash
                             Box::new(subprf),
                             sequent.clone()
                         );
+                        checked_sequents.insert(sequent.clone(), Some(prf.clone()));
                         return Some(prf);
                     }
+                    checked_sequents.insert(sequent.clone(), None);
                 }
                 And(lhs, rhs) => {
                     let mut parent_ant = sequent.antecedent.clone();
@@ -197,14 +199,17 @@ fn _prove_with_lk(sequent: &Sequent, max_depth: u32, checked_sequents: &mut Hash
                     let parent = Sequent{antecedent: parent_ant.clone(), succedent: sequent.succedent.clone()};
                     if let Some(subprf) = _prove_with_lk(&parent, max_depth-1, checked_sequents){
                         let prf = LK::AndLeft1(Box::new(subprf), sequent.clone());
+                        checked_sequents.insert(sequent.clone(), Some(prf.clone()));
                         return Some(prf);
                     }
                     parent_ant[0] = *rhs.clone();
                     let parent = Sequent{antecedent: parent_ant, succedent: sequent.succedent.clone()};
                     if let Some(subprf) = _prove_with_lk(&parent, max_depth-1, checked_sequents){
                         let prf = LK::AndLeft2(Box::new(subprf), sequent.clone());
+                        checked_sequents.insert(sequent.clone(), Some(prf.clone()));
                         return Some(prf);
                     }
+                    checked_sequents.insert(sequent.clone(), None);
                 }
                 Or(lhs, rhs) => {
                     let mut left_sequent = sequent.clone();
@@ -213,19 +218,63 @@ fn _prove_with_lk(sequent: &Sequent, max_depth: u32, checked_sequents: &mut Hash
                     right_sequent.antecedent[0] = *rhs.clone();
                     if let (Some(lprf), Some(rprf)) = (_prove_with_lk(&left_sequent, max_depth-1, checked_sequents), _prove_with_lk(&right_sequent, max_depth-1, checked_sequents)){
                         let prf = LK::OrLeft(Box::new([lprf, rprf]), sequent.clone());
+                        checked_sequents.insert(sequent.clone(), Some(prf.clone()));
                         return Some(prf);
                     }
+                    checked_sequents.insert(sequent.clone(), None);
                 }
-                //Implies(lhs, rhs) => {
-                    //let mut left_sequent = sequent.clone();
-                    //left_sequent.antecedent[0] = *lhs.clone();
-                    //let mut right_sequent = sequent.clone();
-                    //right_sequent.antecedent[0] = *rhs.clone();
-                    //if let (Some(lprf), Some(rprf)) = (_prove_with_lk(&left_sequent, max_depth-1, checked_sequents), _prove_with_lk(&right_sequent, max_depth-1, checked_sequents)){
-                        //let prf = LK::OrLeft(Box::new([lprf, rprf]), sequent.clone());
-                        //return Some(prf);
-                    //}
-                //}
+                Implies(lhs, rhs) => {
+                    let left_fmls = sequent.ant_but_first();
+                    let right_fmls = sequent.succedent.clone();
+                    let left_len = left_fmls.len();
+                    let right_len = right_fmls.len();
+                    for l in 0..left_len+1{
+                        let gamma = left_fmls[..l].to_vec();
+                        let pi = left_fmls[l..].to_vec();
+                        for r in 0..right_len+1{
+                            let delta = right_fmls[..r].to_vec();
+                            let sigma = right_fmls[r..].to_vec();
+                            let mut left_suc = delta;
+                            left_suc.push(*lhs.clone());
+                            let mut right_ant = vec![*rhs.clone()];
+                            right_ant.extend(pi.clone());
+                            let left_sequent = Sequent{antecedent: gamma.clone(), succedent: left_suc};
+                            let right_sequent = Sequent{antecedent: right_ant, succedent: sigma.clone()};
+                            if let (Some(lprf), Some(rprf)) = (_prove_with_lk(&left_sequent, max_depth-1, checked_sequents), _prove_with_lk(&right_sequent, max_depth-1, checked_sequents)){
+                                let prf = LK::ImpliesLeft(Box::new([lprf, rprf]), sequent.clone());
+                                checked_sequents.insert(sequent.clone(), Some(prf.clone()));
+                                return Some(prf);
+                            }
+                        }
+                    }
+                    checked_sequents.insert(sequent.clone(), None);
+                }
+                Forall(term, bfml) => {
+                    let mut parent_ant = sequent.antecedent.clone();
+                    parent_ant[0] = *bfml.clone();
+                    let parent = Sequent{antecedent: parent_ant, succedent: sequent.succedent.clone()};
+                    let mut substitutible_terms = hashset![];
+                    for fml in [sequent.antecedent.clone(), sequent.succedent.clone()].concat(){
+                        let terms = fml.get_subterms();
+                        substitutible_terms.extend(terms);
+                    }
+                    for t in substitutible_terms{
+                        if parent.antecedent[0].is_substitutible(term.clone(), t.clone()){
+                            let tmp_fml = parent.antecedent[0].substitute(term.clone(), t.clone());
+                            let mut tmp_sequent = parent.clone();
+                            tmp_sequent.antecedent[0] = tmp_fml;
+                            if let Some(subprf) = _prove_with_lk(&tmp_sequent, max_depth-1, checked_sequents){
+                                let prf = LK::ForallLeft(
+                                    Box::new(subprf),
+                                    sequent.clone()
+                                );
+                                checked_sequents.insert(sequent.clone(), Some(prf.clone()));
+                                return Some(prf);
+                            }
+                        }
+                    }
+                    checked_sequents.insert(sequent.clone(), None);
+                }
                 _ => {}
             }
         }
