@@ -112,7 +112,7 @@ fn main() {
                         println!("No proof found.");
                     }
                 }
-                Err(s) => println!("{:?}", s),
+                Err(s) => println!("{}", s),
             }
         }
     }

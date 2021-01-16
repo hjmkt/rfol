@@ -1,7 +1,8 @@
 use crate::language::*;
 use std::collections::HashSet;
+use std::fmt::{self, Debug, Display, Formatter};
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Sequent {
     pub antecedent: Vec<Formula>,
     pub succedent: Vec<Formula>,
@@ -30,6 +31,44 @@ impl Sequent {
             .iter()
             .flat_map(|f| f.get_subformulas())
             .collect()
+    }
+}
+
+impl Display for Sequent {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} ⇒  {}",
+            self.antecedent
+                .iter()
+                .map(|fml| format!("{}", fml))
+                .collect::<Vec<_>>()
+                .join(","),
+            self.succedent
+                .iter()
+                .map(|fml| format!("{}", fml))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}
+
+impl Debug for Sequent {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} ⇒  {}",
+            self.antecedent
+                .iter()
+                .map(|fml| format!("{}", fml))
+                .collect::<Vec<_>>()
+                .join(","),
+            self.succedent
+                .iter()
+                .map(|fml| format!("{}", fml))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
     }
 }
 

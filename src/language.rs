@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     LParen,
@@ -16,6 +18,30 @@ pub enum Token {
 pub enum Term {
     Var(String),
     Func(String, Vec<Term>),
+}
+
+impl Display for Term {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Term::Var(s) => write!(f, "{}", s),
+            Term::Func(s, terms) => {
+                if terms.len() > 0 {
+                    write!(
+                        f,
+                        "{}({})",
+                        s,
+                        terms
+                            .iter()
+                            .map(|t| format!("{}", t))
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
+                } else {
+                    write!(f, "{}", s)
+                }
+            }
+        }
+    }
 }
 
 macro_rules! hashset {
@@ -66,6 +92,36 @@ pub enum Formula {
     Implies(Box<Formula>, Box<Formula>),
     Forall(Term, Box<Formula>),
     Exists(Term, Box<Formula>),
+}
+
+impl Display for Formula {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Formula::Pred(s, terms) => {
+                if terms.len() > 0 {
+                    write!(
+                        f,
+                        "{}({})",
+                        s,
+                        terms
+                            .iter()
+                            .map(|t| format!("{}", t))
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
+                } else {
+                    write!(f, "{}", s)
+                }
+            }
+            Formula::Equal(lhs, rhs) => write!(f, "{} = {}", *lhs, *rhs),
+            Formula::Not(fml) => write!(f, "~{}", *fml),
+            Formula::And(lhs, rhs) => write!(f, "({} ∧ {})", *lhs, *rhs),
+            Formula::Or(lhs, rhs) => write!(f, "({} ∨  {})", *lhs, *rhs),
+            Formula::Implies(lhs, rhs) => write!(f, "({} →  {})", *lhs, *rhs),
+            Formula::Forall(term, fml) => write!(f, "∀ {} {}", *term, *fml),
+            Formula::Exists(term, fml) => write!(f, "∃ {} {}", *term, *fml),
+        }
+    }
 }
 
 macro_rules! pred{
