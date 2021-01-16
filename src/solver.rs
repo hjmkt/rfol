@@ -171,7 +171,6 @@ fn _prove_with_lk(
     checked_sequents: &mut HashMap<Sequent, Result<LK, u32>>,
 ) -> Result<LK, u32> {
     if max_depth == 0 {
-        //checked_sequents.insert(sequent.clone(), None);
         Err(0)
     } else if checked_sequents.contains_key(sequent)
         && match checked_sequents[sequent] {
@@ -210,7 +209,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 And(lhs, rhs) => {
                     let mut parent_ant = sequent.antecedent.clone();
@@ -238,7 +236,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Or(lhs, rhs) => {
                     let mut left_sequent = sequent.clone();
@@ -253,7 +250,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Implies(lhs, rhs) => {
                     let left_fmls = sequent.ant_but_first();
@@ -298,7 +294,6 @@ fn _prove_with_lk(
                             }
                         }
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Forall(term, bfml) => {
                     let mut parent_ant = sequent.antecedent.clone();
@@ -329,7 +324,6 @@ fn _prove_with_lk(
                             }
                         }
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Exists(term, bfml) => {
                     let mut parent_ant = sequent.antecedent.clone();
@@ -358,7 +352,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 _ => {}
             }
@@ -380,7 +373,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Or(lhs, rhs) => {
                     let mut parent_suc = sequent.succedent.clone();
@@ -410,7 +402,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 And(lhs, rhs) => {
                     let mut left_sequent = sequent.clone();
@@ -427,7 +418,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Implies(lhs, rhs) => {
                     let mut parent_sequent = sequent.clone();
@@ -442,7 +432,6 @@ fn _prove_with_lk(
                         checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                         return Ok(prf);
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Exists(term, bfml) => {
                     let mut parent_suc = sequent.succedent.clone();
@@ -475,7 +464,6 @@ fn _prove_with_lk(
                             }
                         }
                     }
-                    //checked_sequents.insert(sequent.clone(), None);
                 }
                 Forall(term, bfml) => {
                     let mut parent_suc = sequent.succedent.clone();
@@ -511,17 +499,11 @@ fn _prove_with_lk(
             }
         }
         if sequent.antecedent.len() > 0 {
-            //println!("pass {:?}", sequent);
             let mut parent_sequent = sequent.clone();
             parent_sequent.antecedent = sequent.ant_but_first().to_vec();
-            //println!("pass2 {:?}, {:?}", parent_sequent, max_depth-1);
-            //if checked_sequents.contains_key(&parent_sequent.clone()){
-            //println!("pass3 {:?}", checked_sequents[&parent_sequent.clone()]);
-            //}
             if let Ok(subprf) =
                 _prove_with_lk(&parent_sequent, max_depth - 1, use_cut, checked_sequents)
             {
-                //println!("wl {:?}", parent_sequent);
                 let prf = LK::WeakeningLeft(Box::new(subprf), sequent.clone());
                 checked_sequents.insert(sequent.clone(), Ok(prf.clone()));
                 return Ok(prf);
@@ -642,5 +624,10 @@ fn _prove_with_lk(
 pub fn prove_with_lk(fml: Formula, max_depth: u32, use_cut: bool) -> Result<LK, u32> {
     let sequent = sequent!( => fml);
     let mut checked_sequents = hashmap![];
-    _prove_with_lk(&sequent, max_depth, use_cut, &mut checked_sequents)
+    for d in 1..max_depth + 1 {
+        if let p @ Ok(_) = _prove_with_lk(&sequent, d, use_cut, &mut checked_sequents) {
+            return p;
+        }
+    }
+    Err(max_depth)
 }
