@@ -1,4 +1,5 @@
 #[macro_use]
+#[allow(unused_imports)]
 #[allow(unused_macros)]
 extern crate assert_matches;
 #[allow(unused_macros)]
@@ -632,4 +633,49 @@ fn refute_on_finite_models_works() {
 
     let fml = str_to_fml("(Vx0 (Vx1 (^ (= (a x y) (b x y)) (v (p y) (> q r)))))");
     assert_matches!(refute_on_finite_models(fml, 2), Some(_));
+}
+
+#[test]
+fn prove_with_lk_works() {
+    use parser::*;
+    use solver::*;
+    use tokenizer::*;
+    //use std::io::Write;
+
+    let str_to_fml = |s: &'static str| {
+        let mut tokenizer = Tokenizer::new();
+        let mut parser = Parser::new();
+        let tokens = tokenizer.tokenize(s);
+        let fml = parser.parse(&tokens).unwrap();
+        fml
+    };
+
+    let fml = str_to_fml("(Vx (= x x))");
+    assert_matches!(prove_with_lk(fml, 4, false), Ok(_));
+
+    let fml = str_to_fml("(Vx (Vy (= x y)))");
+    assert_matches!(prove_with_lk(fml, 4, false), Err(_));
+
+    let fml = str_to_fml("(> p p)");
+    assert_matches!(prove_with_lk(fml, 2, false), Ok(_));
+
+    let fml = str_to_fml("(> q (> p p))");
+    assert_matches!(prove_with_lk(fml, 4, false), Ok(_));
+
+    let fml = str_to_fml("(v (> p q) (> q p))");
+    assert_matches!(prove_with_lk(fml, 10, false), Ok(_));
+
+    let fml = str_to_fml("(> (> (> p q) p) p)");
+    assert_matches!(prove_with_lk(fml, 6, false), Ok(_));
+
+    let fml = str_to_fml("(Vx (~ (= x x)))");
+    //let prf = prove_with_lk(fml.clone(), 6, false);
+    //writeln!(&mut std::io::stderr(), "{:#?}", prf);
+    assert_matches!(prove_with_lk(fml, 6, false), Err(_));
+
+    let fml = str_to_fml("(Ex (~ (= x x)))");
+    assert_matches!(prove_with_lk(fml, 4, false), Err(_));
+
+    let fml = str_to_fml("(Vx0 (Vx1 (^ (= (a x y) (b x y)) (v (p y) (> q r)))))");
+    assert_matches!(prove_with_lk(fml, 4, false), Err(_));
 }

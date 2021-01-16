@@ -1,4 +1,5 @@
 use crate::language::*;
+use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Sequent {
@@ -21,6 +22,14 @@ impl Sequent {
 
     pub fn suc_but_last(&self) -> &[Formula] {
         self.succedent.split_last().unwrap().1
+    }
+
+    pub fn get_subformulas(&self) -> HashSet<Formula> {
+        [self.antecedent.clone(), self.succedent.clone()]
+            .concat()
+            .iter()
+            .flat_map(|f| f.get_subformulas())
+            .collect()
     }
 }
 
@@ -94,7 +103,15 @@ pub trait Proof {
 impl Proof for LK {
     fn is_valid_inference(&self) -> bool {
         match self {
-            LK::Axiom(conclusion) => conclusion.antecedent == conclusion.succedent,
+            LK::Axiom(conclusion) => {
+                (conclusion.antecedent == conclusion.succedent && conclusion.antecedent.len() > 0)
+                    || (conclusion.antecedent.is_empty()
+                        && conclusion.succedent.len() == 1
+                        && match conclusion.suc_last() {
+                            Formula::Equal(s, t) => s == t,
+                            _ => false,
+                        })
+            }
             LK::WeakeningLeft(premise, conclusion) => {
                 premise.last().antecedent == conclusion.ant_but_first()
                     && premise.last().succedent == conclusion.succedent

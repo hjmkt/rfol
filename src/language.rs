@@ -331,6 +331,27 @@ impl Formula {
         terms
     }
 
+    fn _get_subformulas(&self, formulas: &mut HashSet<Formula>) {
+        formulas.insert(self.clone());
+        match self {
+            Formula::Not(fml) => {
+                fml._get_subformulas(formulas);
+            }
+            Formula::And(lhs, rhs) | Formula::Or(lhs, rhs) | Formula::Implies(lhs, rhs) => {
+                lhs._get_subformulas(formulas);
+                rhs._get_subformulas(formulas);
+            }
+            Formula::Forall(_, fml) | Formula::Exists(_, fml) => fml._get_subformulas(formulas),
+            _ => {}
+        }
+    }
+
+    pub fn get_subformulas(&self) -> HashSet<Formula> {
+        let mut formulas = HashSet::new();
+        self._get_subformulas(&mut formulas);
+        formulas
+    }
+
     pub fn substitute(&self, var: Term, term: Term) -> Formula {
         match self {
             Formula::Pred(s, subterms) => Formula::Pred(
