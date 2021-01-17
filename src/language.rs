@@ -114,12 +114,12 @@ impl Display for Formula {
                 }
             }
             Formula::Equal(lhs, rhs) => write!(f, "{} = {}", *lhs, *rhs),
-            Formula::Not(fml) => write!(f, "~{}", *fml),
+            Formula::Not(fml) => write!(f, "¬{}", *fml),
             Formula::And(lhs, rhs) => write!(f, "({} ∧ {})", *lhs, *rhs),
-            Formula::Or(lhs, rhs) => write!(f, "({} ∨  {})", *lhs, *rhs),
-            Formula::Implies(lhs, rhs) => write!(f, "({} →  {})", *lhs, *rhs),
-            Formula::Forall(term, fml) => write!(f, "∀ {} {}", *term, *fml),
-            Formula::Exists(term, fml) => write!(f, "∃ {} {}", *term, *fml),
+            Formula::Or(lhs, rhs) => write!(f, "({} ∨ {})", *lhs, *rhs),
+            Formula::Implies(lhs, rhs) => write!(f, "({} → {})", *lhs, *rhs),
+            Formula::Forall(term, fml) => write!(f, "∀{} {}", *term, *fml),
+            Formula::Exists(term, fml) => write!(f, "∃{} {}", *term, *fml),
         }
     }
 }

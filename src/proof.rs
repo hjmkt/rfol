@@ -43,12 +43,12 @@ impl Display for Sequent {
                 .iter()
                 .map(|fml| format!("{}", fml))
                 .collect::<Vec<_>>()
-                .join(","),
+                .join(", "),
             self.succedent
                 .iter()
                 .map(|fml| format!("{}", fml))
                 .collect::<Vec<_>>()
-                .join(",")
+                .join(", ")
         )
     }
 }
@@ -132,6 +132,198 @@ impl LK {
             | ExistsRight(_, s)
             | Cut(_, s) => s,
         }
+    }
+
+    fn _get_prefix_spaces(s: String) -> u32 {
+        let s = s.split('\n').last().unwrap();
+        let mut len = 0;
+        for c in s.chars() {
+            if c == ' ' {
+                len += 1;
+            } else {
+                break;
+            }
+        }
+        len
+    }
+
+    fn _get_suffix_spaces(s: String) -> u32 {
+        let s = s.split('\n').last().unwrap();
+        let mut len = 0;
+        for c in s.chars().rev() {
+            if c == ' ' {
+                len += 1;
+            } else {
+                break;
+            }
+        }
+        len
+    }
+
+    fn _last_line_len(s: String) -> u32 {
+        let s = s.split('\n').last().unwrap();
+        (s.chars().count() as i32 - LK::_get_prefix_spaces(s.into()) as i32) as u32
+    }
+
+    fn _get_label(&self) -> String {
+        use LK::*;
+        match self {
+            Axiom(_) => "(ax)".to_string(),
+            WeakeningLeft(_, _) => "(wL)".to_string(),
+            WeakeningRight(_, _) => "(wR)".to_string(),
+            ContractionLeft(_, _) => "(cL)".to_string(),
+            ContractionRight(_, _) => "(cR)".to_string(),
+            ExchangeLeft(_, _) => "(xL)".to_string(),
+            ExchangeRight(_, _) => "(xR)".to_string(),
+            AndLeft1(_, _) => "(∧L1)".to_string(),
+            AndLeft2(_, _) => "(∧L2)".to_string(),
+            AndRight(_, _) => "(∧R)".to_string(),
+            OrLeft(_, _) => "(∨L)".to_string(),
+            OrRight1(_, _) => "(∨R1)".to_string(),
+            OrRight2(_, _) => "(∨R2)".to_string(),
+            ImpliesLeft(_, _) => "(→L)".to_string(),
+            ImpliesRight(_, _) => "(→R)".to_string(),
+            NotLeft(_, _) => "(¬L)".to_string(),
+            NotRight(_, _) => "(¬R)".to_string(),
+            ForallLeft(_, _) => "(∀L)".to_string(),
+            ForallRight(_, _) => "(∀R)".to_string(),
+            ExistsLeft(_, _) => "(∃L)".to_string(),
+            ExistsRight(_, _) => "(∃R)".to_string(),
+            Cut(_, _) => "(Cut)".to_string(),
+        }
+    }
+
+    fn _join_sequent_str(
+        &self,
+        parent_str: String,
+        sequent_str: String,
+        parent_body_prefix: u32,
+        parent_body_len: u32,
+    ) -> String {
+        let mut parent_str = parent_str;
+        let mut sequent_str = sequent_str;
+        let sequent_len = sequent_str.chars().count();
+        let mut offset =
+            (parent_body_len as i32 - sequent_len as i32) / 2 + parent_body_prefix as i32;
+        if offset > 0 {
+            sequent_str = (0..offset).map(|_| " ").collect::<String>() + &sequent_str;
+        } else {
+            parent_str = parent_str
+                .split("\n")
+                .map(|l| (0..-offset).map(|_| " ").collect::<String>() + l)
+                .collect::<Vec<_>>()
+                .join("\n");
+            offset = 0;
+        }
+        let sep_line = if sequent_len > parent_body_len as usize {
+            (0..offset).map(|_| " ").collect::<String>()
+                + &(0..sequent_len + 1).map(|_| "-").collect::<String>()
+                + &self._get_label()
+        } else {
+            (0..parent_body_prefix).map(|_| " ").collect::<String>()
+                + &(0..parent_body_len + 1).map(|_| "-").collect::<String>()
+                + &self._get_label()
+        };
+        sequent_str = parent_str + "\n" + &sep_line + "\n" + &sequent_str;
+        let max_len = sequent_str
+            .split("\n")
+            .map(|l| l.chars().count())
+            .fold(0, |m, v| m.max(v));
+        sequent_str = sequent_str
+            .split("\n")
+            .map(|l| {
+                l.to_string()
+                    + &(0..(max_len - l.chars().count()))
+                        .map(|_| " ")
+                        .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        sequent_str
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            LK::Axiom(s) => {
+                format!("{}", s)
+            }
+            LK::WeakeningLeft(parent, sequent)
+            | LK::WeakeningRight(parent, sequent)
+            | LK::ContractionLeft(parent, sequent)
+            | LK::ContractionRight(parent, sequent)
+            | LK::ExchangeLeft(parent, sequent)
+            | LK::ExchangeRight(parent, sequent)
+            | LK::AndLeft1(parent, sequent)
+            | LK::AndLeft2(parent, sequent)
+            | LK::OrRight1(parent, sequent)
+            | LK::OrRight2(parent, sequent)
+            | LK::ImpliesRight(parent, sequent)
+            | LK::NotLeft(parent, sequent)
+            | LK::NotRight(parent, sequent)
+            | LK::ForallLeft(parent, sequent)
+            | LK::ForallRight(parent, sequent)
+            | LK::ExistsLeft(parent, sequent)
+            | LK::ExistsRight(parent, sequent) => {
+                let parent_str = parent.to_string();
+                let parent_len = parent_str.split("\n").last().unwrap().chars().count();
+                let prefix_spaces = LK::_get_prefix_spaces(parent_str.clone());
+                let suffix_spaces = LK::_get_suffix_spaces(parent_str.clone());
+                let parent_body_len = parent_len - prefix_spaces as usize - suffix_spaces as usize;
+                let sequent_str = format!("{}", sequent);
+                self._join_sequent_str(
+                    parent_str,
+                    sequent_str,
+                    prefix_spaces,
+                    parent_body_len as u32,
+                )
+            }
+            LK::AndRight(premises, sequent)
+            | LK::OrLeft(premises, sequent)
+            | LK::ImpliesLeft(premises, sequent)
+            | LK::Cut(premises, sequent) => {
+                let [lhs, rhs] = &**premises;
+                let mut left_str = lhs.to_string();
+                let mut right_str = rhs.to_string();
+                let prefix_spaces = LK::_get_prefix_spaces(left_str.clone());
+                let suffix_spaces = LK::_get_suffix_spaces(right_str.clone());
+                let mut left_lines = left_str.split("\n").collect::<Vec<_>>().len();
+                let right_lines = right_str.split("\n").collect::<Vec<_>>().len();
+                if left_lines < right_lines {
+                    left_str = (0..right_lines - left_lines)
+                        .map(|_| "\n")
+                        .collect::<String>()
+                        + &left_str;
+                    left_lines = right_lines;
+                } else {
+                    right_str = (0..left_lines - right_lines)
+                        .map(|_| "\n")
+                        .collect::<String>()
+                        + &right_str;
+                }
+                let lefts = left_str.split("\n").collect::<Vec<_>>();
+                let rights = right_str.split("\n").collect::<Vec<_>>();
+                let parent_str = (0..left_lines)
+                    .map(|l| lefts[l].to_string() + "    " + rights[l])
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let parent_body_len = LK::_last_line_len(parent_str.clone()) as i32
+                    - prefix_spaces as i32
+                    - suffix_spaces as i32;
+                let sequent_str = format!("{}", sequent);
+                self._join_sequent_str(
+                    parent_str,
+                    sequent_str,
+                    prefix_spaces,
+                    parent_body_len as u32,
+                )
+            }
+        }
+    }
+}
+
+impl Display for LK {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }
 

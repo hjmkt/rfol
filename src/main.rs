@@ -103,11 +103,10 @@ fn main() {
             let mut parser = Parser::new();
             match parser.parse(&fml) {
                 Ok(fml) => {
-                    println!("{:?}", fml);
                     use solver::*;
                     let use_cut = matches.is_present("use_cut");
                     if let Ok(proof) = prove_with_lk(fml, max_proof_depth, use_cut) {
-                        println!("{:#?}", proof);
+                        println!("{}", proof);
                     } else {
                         println!("No proof found.");
                     }
